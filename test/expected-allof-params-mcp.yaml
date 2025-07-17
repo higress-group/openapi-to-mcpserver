@@ -1,0 +1,54 @@
+server:
+  name: openapi-server
+tools:
+  - name: User_Search
+    description: 搜索用户
+    args:
+      - name: page
+        description: ""
+        type: integer
+        position: body
+      - name: search
+        description: 搜索项
+        properties:
+          created_at:
+            description: 创建时间范围
+            properties:
+              end:
+                type: string
+              start:
+                type: string
+            type: ""
+          keyword:
+            type: string
+        position: body
+      - name: size
+        description: ""
+        type: integer
+        position: body
+    requestTemplate:
+      url: /user/info
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **email**:  (Type: string)
+        - **id**:  (Type: string)
+        - **name**:  (Type: string)
+        - **phone**:  (Type: string)
+
+        ## Original Response
+

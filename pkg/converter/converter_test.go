@@ -64,6 +64,11 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-security-test-mcp.yaml",
 			serverName:     "openapi-server", // Matches the default or can be specified if different
 		},
+		{
+			name:           "Handle AllOf Parameters",
+			inputFile:      "../../test/allof-params.json",
+			expectedOutput: "../../test/expected-allof-params-mcp.yaml",
+		},
 	}
 
 	for _, tc := range testCases {

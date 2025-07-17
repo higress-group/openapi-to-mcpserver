@@ -390,6 +390,10 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 							}
 						}
 					}
+					// Handle allOf
+					if propRef.Value.Type == "" && len(propRef.Value.AllOf) == 1 {
+						arg.Properties = c.allOfHandle(propRef.Value.AllOf[0])
+					}
 
 					args = append(args, arg)
 				}
@@ -398,6 +402,27 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 	}
 
 	return args, nil
+}
+
+func (c *Converter) allOfHandle(schemaRef *openapi3.SchemaRef) map[string]interface{} {
+	properties := make(map[string]interface{})
+	if schemaRef.Value.Type == "object" {
+		for propName, propRef := range schemaRef.Value.Properties {
+			if propRef.Value != nil {
+				properties[propName] = map[string]interface{}{
+					"type": propRef.Value.Type,
+				}
+				if propRef.Value.Description != "" {
+					properties[propName].(map[string]interface{})["description"] = propRef.Value.Description
+				}
+				if propRef.Value.Type == "" && len(propRef.Value.AllOf) == 1 {
+					properties[propName].(map[string]interface{})["properties"] = c.allOfHandle(propRef.Value.AllOf[0])
+				}
+			}
+		}
+	}
+
+	return properties
 }
 
 // createRequestTemplate creates an MCP request template from an OpenAPI operation

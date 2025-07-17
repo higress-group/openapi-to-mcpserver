@@ -1,0 +1,112 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "User API",
+        "version": "0.0.1"
+    },
+    "paths": {
+        "/user/info": {
+            "post": {
+                "tags": ["User"],
+                "description": "搜索用户",
+                "operationId": "User_Search",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/user.Req"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/user.Rsp"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "user.Req": {
+                "type": "object",
+                "properties": {
+                    "search": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/user.Req_Search"
+                            }
+                        ],
+                        "description": "搜索项"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "format": "int32"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "format": "int32"
+                    }
+                }
+            },
+            "user.Req_Range": {
+                "type": "object",
+                "properties": {
+                    "start": {
+                        "type": "string"
+                    },
+                    "end": {
+                        "type": "string"
+                    }
+                }
+            },
+            "user.Req_Search": {
+                "type": "object",
+                "properties": {
+                    "keyword": {
+                        "type": "string"
+                    },
+                    "created_at": {
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/user.Req_Range"
+                            }
+                        ],
+                        "description": "创建时间范围"
+                    }
+                }
+            },
+            "user.Rsp": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "phone": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "User"
+        }
+    ]
+}
