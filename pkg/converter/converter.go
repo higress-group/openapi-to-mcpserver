@@ -391,7 +391,9 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 							if subPropRef.Value != nil {
 								subProp := make(map[string]any)
 								subProp["type"] = subPropRef.Value.Type
-								subProp["default"] = subPropRef.Value.Default
+								if subPropRef.Value.Default != nil {
+									subProp["default"] = subPropRef.Value.Default
+								}
 								subProp["description"] = subPropRef.Value.Description
 								if subPropRef.Value.Enum != nil {
 									subProp["enum"] = subPropRef.Value.Enum
@@ -435,10 +437,9 @@ func (c *Converter) createRequestTemplate(path, method string, operation *openap
 				// In MCP, we just reference the scheme by ID.
 				// The actual application of security (e.g., adding headers)
 				// would be handled by the MCP server runtime based on this ID.
-				template.Security = &models.ToolSecurityRequirement{
+				template.Security = append(template.Security, models.ToolSecurityRequirement{
 					ID: schemeName,
-				}
-				break
+				})
 			}
 		}
 	}
@@ -554,10 +555,10 @@ func (c *Converter) processSchemaProperties(prependBody *strings.Builder, schema
 		arrayItemSchema := schema.Items.Value
 
 		// Include the array description if available
-		arrayDesc := schema.Description
-		if arrayDesc == "" {
-			arrayDesc = fmt.Sprintf("Array of %s", arrayItemSchema.Type)
-		}
+		// arrayDesc := schema.Description
+		// if arrayDesc == "" {
+		// 	arrayDesc = fmt.Sprintf("Array of %s", arrayItemSchema.Type)
+		// }
 
 		// If array items are objects, describe their properties
 		if arrayItemSchema.Type == "object" && len(arrayItemSchema.Properties) > 0 {
@@ -577,7 +578,7 @@ func (c *Converter) processSchemaProperties(prependBody *strings.Builder, schema
 
 				// Write the property description
 				propPath := fmt.Sprintf("%s[].%s", path, propName)
-				fmt.Fprintf(prependBody, "%s- **%s**: %s", indent, propPath, arrayDesc)
+				fmt.Fprintf(prependBody, "%s- **%s**: %s", indent, propPath, propRef.Value.Description)
 				if propRef.Value.Type != "" {
 					fmt.Fprintf(prependBody, " (Type: %s)", propRef.Value.Type)
 				}

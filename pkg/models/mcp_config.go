@@ -49,14 +49,14 @@ type Arg struct {
 
 // RequestTemplate represents the MCP request template
 type RequestTemplate struct {
-	URL            string                   `yaml:"url"`
-	Method         string                   `yaml:"method"`
-	Headers        []Header                 `yaml:"headers,omitempty"`
-	Body           string                   `yaml:"body,omitempty"`
-	ArgsToJsonBody bool                     `yaml:"argsToJsonBody,omitempty"`
-	ArgsToUrlParam bool                     `yaml:"argsToUrlParam,omitempty"`
-	ArgsToFormBody bool                     `yaml:"argsToFormBody,omitempty"`
-	Security       *ToolSecurityRequirement `yaml:"security,omitempty"`
+	URL            string                    `yaml:"url"`
+	Method         string                    `yaml:"method"`
+	Headers        []Header                  `yaml:"headers,omitempty"`
+	Body           string                    `yaml:"body,omitempty"`
+	ArgsToJsonBody bool                      `yaml:"argsToJsonBody,omitempty"`
+	ArgsToUrlParam bool                      `yaml:"argsToUrlParam,omitempty"`
+	ArgsToFormBody bool                      `yaml:"argsToFormBody,omitempty"`
+	Security       []ToolSecurityRequirement `yaml:"security,omitempty"`
 }
 
 // ToolSecurityRequirement specifies a security scheme requirement for a tool.

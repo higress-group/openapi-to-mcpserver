@@ -64,6 +64,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-security-test-mcp.yaml",
 			serverName:     "openapi-server", // Matches the default or can be specified if different
 		},
+		{
+			name:           "Tools Args array of object",
+			inputFile:      "../../test/tools-args-array-of-object.json",
+			expectedOutput: "../../test/expected-tools-args-array-of-object-mcp.yaml",
+			serverName:     "openapi-server",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -99,7 +105,7 @@ func TestEndToEndConversion(t *testing.T) {
 
 			// If the expected output file doesn't exist, write the actual output to it
 			if _, err := os.Stat(tc.expectedOutput); os.IsNotExist(err) {
-				err = os.WriteFile(tc.expectedOutput, actualYAML, 0644)
+				err = os.WriteFile(tc.expectedOutput, actualYAML, 0o644)
 				assert.NoError(t, err)
 				t.Logf("Created expected output file: %s", tc.expectedOutput)
 			}

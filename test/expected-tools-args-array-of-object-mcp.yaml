@@ -1,0 +1,45 @@
+server:
+  name: openapi-server
+tools:
+  - name: layout
+    description: 物体检测
+    args:
+      - name: pages
+        description: 图片list base64
+        type: array
+        required: true
+        items:
+          description: image
+          properties:
+            image:
+              type: string
+              description: 图片base64
+              default: ""
+          type: object
+        position: body
+    requestTemplate:
+      url: /v2/infer
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **code**: 状态值 (Type: number)
+        - **data**: 数据 (Type: object)
+          - **data.pages**: 识别pages (Type: array)
+            - **data.pages[]**: Items of type string
+
+        ## Original Response
+

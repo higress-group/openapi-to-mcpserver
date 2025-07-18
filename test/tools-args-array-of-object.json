@@ -1,0 +1,94 @@
+{
+  "openapi": "3.1.0",
+  "servers": [
+    {
+      "url": "",
+      "description": ""
+    }
+  ],
+  "info": {
+    "title": "Noqt3O5GjjpDSrDU",
+    "version": "1.0",
+    "description": "物体检测"
+  },
+  "tags": [],
+  "paths": {
+    "/v2/infer": {
+      "post": {
+        "summary": "物体检测",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "default": {},
+                  "properties": {
+                    "code": {
+                      "type": "number",
+                      "default": "",
+                      "description": "状态值"
+                    },
+                    "data": {
+                      "type": "object",
+                      "default": {},
+                      "properties": {
+                        "pages": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "default": "",
+                            "description": "单张识别"
+                          },
+                          "default": [],
+                          "description": "识别pages"
+                        }
+                      },
+                      "description": "数据"
+                    }
+                  },
+                  "description": ""
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "description": "",
+        "operationId": "layout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "default": {},
+                "required": ["pages"],
+                "properties": {
+                  "pages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "default": {},
+                      "properties": {
+                        "image": {
+                          "type": "string",
+                          "default": "",
+                          "description": "图片base64"
+                        }
+                      },
+                      "description": "image"
+                    },
+                    "default": [],
+                    "description": "图片list base64"
+                  }
+                },
+                "description": ""
+              }
+            }
+          },
+          "description": ""
+        }
+      }
+    }
+  }
+}
