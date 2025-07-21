@@ -404,6 +404,7 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 					}
 					// Handle allOf
 					if propRef.Value.Type == "" && len(propRef.Value.AllOf) == 1 {
+						arg.Type = "object"
 						arg.Properties = c.allOfHandle(propRef.Value.AllOf[0])
 					}
 
@@ -428,6 +429,7 @@ func (c *Converter) allOfHandle(schemaRef *openapi3.SchemaRef) map[string]interf
 					properties[propName].(map[string]interface{})["description"] = propRef.Value.Description
 				}
 				if propRef.Value.Type == "" && len(propRef.Value.AllOf) == 1 {
+					properties[propName].(map[string]interface{})["type"] = "object"
 					properties[propName].(map[string]interface{})["properties"] = c.allOfHandle(propRef.Value.AllOf[0])
 				}
 			}

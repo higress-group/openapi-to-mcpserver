@@ -10,6 +10,7 @@ tools:
         position: body
       - name: search
         description: 搜索项
+        type: object
         properties:
           created_at:
             description: 创建时间范围
@@ -18,7 +19,7 @@ tools:
                 type: string
               start:
                 type: string
-            type: ""
+            type: object
           keyword:
             type: string
         position: body
