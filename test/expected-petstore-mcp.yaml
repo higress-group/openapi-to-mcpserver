@@ -51,6 +51,18 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: A paged array of pets
+      properties:
+        nextPage:
+          description: URL to get the next page of pets
+          type: string
+        pets:
+          items:
+            type: object
+          type: array
+      type: object
   - name: showPetById
     description: Info for a specific pet
     args:
@@ -81,3 +93,17 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: Expected response to a valid request
+      properties:
+        id:
+          description: Unique identifier for the pet
+          type: integer
+        name:
+          description: Name of the pet
+          type: string
+        tag:
+          description: Tag of the pet
+          type: string
+      type: object

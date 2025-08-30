@@ -1,0 +1,107 @@
+server:
+  name: output-schema-api
+tools:
+  - name: get_user_id
+    description: Get user by ID - Retrieve a single user by ID
+    args:
+      - name: id
+        description: User ID
+        type: integer
+        required: true
+        position: path
+    requestTemplate:
+      url: https://api.example.com/v1/user/{id}
+      method: GET
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **email**: User email (Type: string)
+        - **id**: User ID (Type: integer)
+        - **name**: User name (Type: string)
+        - **profile**: User profile information (Type: object)
+          - **profile.bio**: User biography (Type: string)
+          - **profile.website**: User website (Type: string)
+
+        ## Original Response
+
+    outputSchema:
+      contentType: application/json
+      description: Successful response
+      properties:
+        email:
+          description: User email
+          type: string
+        id:
+          description: User ID
+          type: integer
+        name:
+          description: User name
+          type: string
+        profile:
+          description: User profile information
+          properties:
+            bio:
+              description: User biography
+              type: string
+            website:
+              description: User website
+              type: string
+          type: object
+      required:
+        - id
+        - name
+        - email
+      type: object
+  - name: get_users
+    description: Get users list - Retrieve a list of users
+    args: []
+    requestTemplate:
+      url: https://api.example.com/v1/users
+      method: GET
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **total**: Total number of users (Type: integer)
+        - **users**: List of users (Type: array)
+          - **users[].email**: User email (Type: string)
+          - **users[].id**: User ID (Type: integer)
+          - **users[].name**: User name (Type: string)
+
+        ## Original Response
+
+    outputSchema:
+      contentType: application/json
+      description: Successful response
+      properties:
+        total:
+          description: Total number of users
+          type: integer
+        users:
+          description: List of users
+          items:
+            type: object
+          type: array
+      required:
+        - users
+        - total
+      type: object

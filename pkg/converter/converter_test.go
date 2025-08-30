@@ -76,6 +76,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-allof-params-mcp.yaml",
       serverName:     "openapi-server",
 		},
+		{
+			name:           "Output Schema Test",
+			inputFile:      "../../test/output-schema-test.json",
+			expectedOutput: "../../test/expected-output-schema-test-mcp.yaml",
+			serverName:     "output-schema-api",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -124,4 +130,115 @@ func TestEndToEndConversion(t *testing.T) {
 			assert.Equal(t, string(expectedYAML), string(actualYAML))
 		})
 	}
+}
+
+func TestCreateOutputSchema(t *testing.T) {
+	// Create a new parser
+	p := parser.NewParser()
+
+	// Parse the test file
+	err := p.ParseFile("../../test/output-schema-test.json")
+	assert.NoError(t, err)
+
+	// Create a converter
+	c := NewConverter(p, models.ConvertOptions{
+		ServerName: "test-server",
+	})
+
+	// Get the document and operations
+	doc := p.GetDocument()
+	userOperation := doc.Paths.Find("/user/{id}").Get
+
+	// Test createOutputSchema
+	outputSchema, err := c.createOutputSchema(userOperation)
+	assert.NoError(t, err)
+	assert.NotNil(t, outputSchema)
+
+	// Verify output schema structure
+	assert.Equal(t, "object", outputSchema["type"])
+	assert.Equal(t, "Successful response", outputSchema["description"])
+	assert.Equal(t, "application/json", outputSchema["contentType"])
+
+	// Verify properties
+	properties, ok := outputSchema["properties"].(map[string]any)
+	assert.True(t, ok)
+	assert.Contains(t, properties, "id")
+	assert.Contains(t, properties, "name")
+	assert.Contains(t, properties, "email")
+	assert.Contains(t, properties, "profile")
+
+	// Verify id property
+	idProp, ok := properties["id"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "integer", idProp["type"])
+	assert.Equal(t, "User ID", idProp["description"])
+
+	// Verify profile property (nested object)
+	profileProp, ok := properties["profile"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "object", profileProp["type"])
+	assert.Equal(t, "User profile information", profileProp["description"])
+
+	// Verify nested properties in profile
+	profileProps, ok := profileProp["properties"].(map[string]any)
+	assert.True(t, ok)
+	assert.Contains(t, profileProps, "bio")
+	assert.Contains(t, profileProps, "website")
+
+	// Verify required fields
+	required, ok := outputSchema["required"].([]string)
+	assert.True(t, ok)
+	assert.Contains(t, required, "id")
+	assert.Contains(t, required, "name")
+	assert.Contains(t, required, "email")
+}
+
+func TestCreateOutputSchemaArray(t *testing.T) {
+	// Create a new parser
+	p := parser.NewParser()
+
+	// Parse the test file
+	err := p.ParseFile("../../test/output-schema-test.json")
+	assert.NoError(t, err)
+
+	// Create a converter
+	c := NewConverter(p, models.ConvertOptions{
+		ServerName: "test-server",
+	})
+
+	// Get the document and operations
+	doc := p.GetDocument()
+	usersOperation := doc.Paths.Find("/users").Get
+
+	// Test createOutputSchema for array response
+	outputSchema, err := c.createOutputSchema(usersOperation)
+	assert.NoError(t, err)
+	assert.NotNil(t, outputSchema)
+
+	// Verify output schema structure for array response
+	assert.Equal(t, "object", outputSchema["type"])
+	assert.Equal(t, "Successful response", outputSchema["description"])
+
+	// Verify properties
+	properties, ok := outputSchema["properties"].(map[string]any)
+	assert.True(t, ok)
+	assert.Contains(t, properties, "users")
+	assert.Contains(t, properties, "total")
+
+	// Verify users property (array)
+	usersProp, ok := properties["users"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "array", usersProp["type"])
+	assert.Equal(t, "List of users", usersProp["description"])
+
+	// Verify array items
+	items, ok := usersProp["items"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "object", items["type"])
+
+	// Verify required fields
+	required, ok := outputSchema["required"].([]string)
+	assert.True(t, ok)
+	assert.Contains(t, required, "users")
+	assert.Contains(t, required, "total")
 }

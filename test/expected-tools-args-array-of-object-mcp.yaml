@@ -43,3 +43,17 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      properties:
+        code:
+          description: 状态值
+          type: number
+        data:
+          description: 数据
+          properties:
+            pages:
+              description: 识别pages
+              type: array
+          type: object
+      type: object

@@ -53,3 +53,16 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: OK
+      properties:
+        email:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+      type: object

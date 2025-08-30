@@ -46,6 +46,7 @@ type Tool struct {
 	ResponseTemplate      ResponseTemplate         `yaml:"responseTemplate"`
 	ErrorResponseTemplate *string                  `yaml:"errorResponseTemplate,omitempty"`
 	Security              *ToolSecurityRequirement `yaml:"security,omitempty"`
+	OutputSchema          map[string]any           `yaml:"outputSchema,omitempty"` // NEW: Output schema for MCP 2025-06-18
 }
 
 // Arg represents an MCP tool argument
@@ -105,6 +106,7 @@ type ToolTemplate struct {
 	RequestTemplate  *RequestTemplate         `yaml:"requestTemplate,omitempty"`
 	ResponseTemplate *ResponseTemplate        `yaml:"responseTemplate,omitempty"`
 	Security         *ToolSecurityRequirement `yaml:"security,omitempty"`
+	OutputSchema     map[string]any           `yaml:"outputSchema,omitempty"` // NEW: Output schema template
 }
 
 // MCPConfigTemplate represents a template for patching the generated config

@@ -134,7 +134,7 @@ func (c *Converter) applyTemplate(config *models.MCPConfig) error {
 	}
 
 	// Apply tool template to all tools
-	if templateConfig.Tools.RequestTemplate != nil || templateConfig.Tools.ResponseTemplate != nil || templateConfig.Tools.Security != nil {
+	if templateConfig.Tools.RequestTemplate != nil || templateConfig.Tools.ResponseTemplate != nil || templateConfig.Tools.Security != nil || templateConfig.Tools.OutputSchema != nil {
 		for i := range config.Tools {
 			// Apply request template
 			if templateConfig.Tools.RequestTemplate != nil {
@@ -181,6 +181,11 @@ func (c *Converter) applyTemplate(config *models.MCPConfig) error {
 			// Apply security
 			if templateConfig.Tools.Security != nil {
 				config.Tools[i].Security = templateConfig.Tools.Security
+			}
+
+			// Apply output schema
+			if templateConfig.Tools.OutputSchema != nil {
+				config.Tools[i].OutputSchema = templateConfig.Tools.OutputSchema
 			}
 		}
 	}
@@ -267,6 +272,16 @@ func (c *Converter) convertOperation(path, method string, operation *openapi3.Op
 		return nil, fmt.Errorf("failed to create response template: %w", err)
 	}
 	tool.ResponseTemplate = *responseTemplate
+
+	// Create output schema based on OpenAPI response schema (only if response schema exists)
+	outputSchema, err := c.createOutputSchema(operation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create output schema: %w", err)
+	}
+	// Only set outputSchema if it was successfully generated (not nil)
+	if outputSchema != nil {
+		tool.OutputSchema = outputSchema
+	}
 
 	return tool, nil
 }
@@ -666,6 +681,127 @@ func getDescription(operation *openapi3.Operation) string {
 		return operation.Summary
 	}
 	return operation.Description
+}
+
+// createOutputSchema creates an MCP output schema from an OpenAPI operation response
+func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[string]any, error) {
+	// Find the success response (200, 201, etc.)
+	var successResponse *openapi3.Response
+	if operation.Responses != nil {
+		for code, responseRef := range operation.Responses {
+			if strings.HasPrefix(code, "2") && responseRef != nil && responseRef.Value != nil {
+				successResponse = responseRef.Value
+				break
+			}
+		}
+	}
+
+	// If there's no success response, return empty schema
+	if successResponse == nil || len(successResponse.Content) == 0 {
+		return nil, nil
+	}
+
+	// Process the first content type (typically application/json)
+	for contentType, mediaType := range successResponse.Content {
+		if mediaType.Schema == nil || mediaType.Schema.Value == nil {
+			continue
+		}
+
+		schema := mediaType.Schema.Value
+
+		// Convert OpenAPI schema to MCP output schema
+		outputSchema := make(map[string]any)
+
+		// Set basic type information
+		if schema.Type != "" {
+			outputSchema["type"] = schema.Type
+		}
+
+		// Add description if available
+		if successResponse.Description != nil && *successResponse.Description != "" {
+			outputSchema["description"] = *successResponse.Description
+		}
+
+		// Handle array type
+		if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
+			itemsSchema := make(map[string]any)
+			itemsSchema["type"] = schema.Items.Value.Type
+			if schema.Items.Value.Description != "" {
+				itemsSchema["description"] = schema.Items.Value.Description
+			}
+			outputSchema["items"] = itemsSchema
+		}
+
+		// Handle object type with properties
+		if schema.Type == "object" && len(schema.Properties) > 0 {
+			properties := make(map[string]any)
+			required := schema.Required
+
+			// Get property names and sort them alphabetically for consistent output
+			propNames := make([]string, 0, len(schema.Properties))
+			for propName := range schema.Properties {
+				propNames = append(propNames, propName)
+			}
+			sort.Strings(propNames)
+
+			// Process each property
+			for _, propName := range propNames {
+				propRef := schema.Properties[propName]
+				if propRef.Value == nil {
+					continue
+				}
+
+				propSchema := make(map[string]any)
+				propSchema["type"] = propRef.Value.Type
+
+				if propRef.Value.Description != "" {
+					propSchema["description"] = propRef.Value.Description
+				}
+
+				// Handle nested object properties
+				if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
+					nestedProps := make(map[string]any)
+					for nestedPropName, nestedPropRef := range propRef.Value.Properties {
+						if nestedPropRef.Value != nil {
+							nestedPropSchema := make(map[string]any)
+							nestedPropSchema["type"] = nestedPropRef.Value.Type
+							if nestedPropRef.Value.Description != "" {
+								nestedPropSchema["description"] = nestedPropRef.Value.Description
+							}
+							nestedProps[nestedPropName] = nestedPropSchema
+						}
+					}
+					propSchema["properties"] = nestedProps
+				}
+
+				// Handle array properties
+				if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+					itemsSchema := make(map[string]any)
+					itemsSchema["type"] = propRef.Value.Items.Value.Type
+					if propRef.Value.Items.Value.Description != "" {
+						itemsSchema["description"] = propRef.Value.Items.Value.Description
+					}
+					propSchema["items"] = itemsSchema
+				}
+
+				properties[propName] = propSchema
+			}
+
+			outputSchema["properties"] = properties
+
+			// Add required fields if any
+			if len(required) > 0 {
+				outputSchema["required"] = required
+			}
+		}
+
+		// Add content type information
+		outputSchema["contentType"] = contentType
+
+		return outputSchema, nil
+	}
+
+	return nil, nil
 }
 
 // contains checks if a string slice contains a string

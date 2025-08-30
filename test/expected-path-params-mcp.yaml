@@ -31,6 +31,20 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: User information
+      properties:
+        email:
+          description: User email
+          type: string
+        id:
+          description: User ID
+          type: string
+        name:
+          description: User name
+          type: string
+      type: object
   - name: updateUser
     description: Update user
     args:
