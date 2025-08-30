@@ -281,6 +281,7 @@ tools:
 4. This configuration can be used with Higress by adding it to your Higress gateway configuration.
 
 Note how the tool automatically sets the `position` field for each parameter based on its location in the OpenAPI specification:
+
 - The `petId` parameter is set to `position: path` because it's defined as `in: path` in the OpenAPI spec
 - The `limit` parameter is set to `position: query` because it's defined as `in: query` in the OpenAPI spec
 - The request body properties (`name` and `tag`) are set to `position: body`
@@ -343,6 +344,7 @@ The tool now supports the conversion of security schemes defined in your OpenAPI
 Security schemes defined in the `components.securitySchemes` section of your OpenAPI document are converted into a list under `server.securitySchemes` in the generated MCP configuration.
 
 **Example OpenAPI Snippet (`components.securitySchemes`):**
+
 ```json
 {
   "components": {
@@ -362,6 +364,7 @@ Security schemes defined in the `components.securitySchemes` section of your Ope
 ```
 
 **Corresponding MCP YAML Output (`server.securitySchemes`):**
+
 ```yaml
 server:
   name: your-server-name
@@ -375,6 +378,7 @@ server:
       scheme: basic
   # ... other server config ...
 ```
+
 The `defaultCredential` field within a security scheme is an MCP-specific extension and is not derived from the OpenAPI specification. You can set it using the `--template` feature if needed.
 
 ### Tool-Level Security Requirements
@@ -382,6 +386,7 @@ The `defaultCredential` field within a security scheme is an MCP-specific extens
 Security requirements defined at the operation level in your OpenAPI document (using the `security` keyword) are converted into a list under `requestTemplate.security` for the corresponding tool. Each entry in this list will reference the `id` of a security scheme defined in `server.securitySchemes`.
 
 **Example OpenAPI Snippet (Operation with security):**
+
 ```json
 {
   "paths": {
@@ -404,6 +409,7 @@ Security requirements defined at the operation level in your OpenAPI document (u
 ```
 
 **Corresponding MCP YAML Output (Tool's `requestTemplate.security`):**
+
 ```yaml
 tools:
   - name: getProtectedResource
@@ -417,11 +423,20 @@ tools:
     # ... responseTemplate ...
 ```
 
-
 ### Template Overrides for Security
 
 You can use the `--template` option to:
+
 - Add new security schemes to `server.securitySchemes`.
 - Override existing security schemes (e.g., to add `defaultCredential`).
 - Override or set `security` requirements for all tools via the `tools.requestTemplate.security` path in your template file.
+
 If the template defines `server.securitySchemes` or `tools.requestTemplate.security`, these will replace any schemes/requirements derived from the OpenAPI specification.
+
+## Contributing
+
+We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for information on how to get started.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
