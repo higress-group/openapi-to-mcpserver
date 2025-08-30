@@ -99,6 +99,19 @@ tools:
         users:
           description: List of users
           items:
+            properties:
+              email:
+                description: User email
+                type: string
+              id:
+                description: User ID
+                type: integer
+              name:
+                description: User name
+                type: string
+            required:
+              - id
+              - name
             type: object
           type: array
       required:

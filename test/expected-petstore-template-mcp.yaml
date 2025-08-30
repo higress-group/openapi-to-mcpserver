@@ -71,6 +71,16 @@ tools:
           type: string
         pets:
           items:
+            properties:
+              id:
+                description: Unique identifier for the pet
+                type: integer
+              name:
+                description: Name of the pet
+                type: string
+              tag:
+                description: Tag of the pet
+                type: string
             type: object
           type: array
       type: object

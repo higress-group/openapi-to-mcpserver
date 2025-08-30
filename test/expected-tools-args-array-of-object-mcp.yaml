@@ -54,6 +54,9 @@ tools:
           properties:
             pages:
               description: 识别pages
+              items:
+                description: 单张识别
+                type: string
               type: array
           type: object
       type: object

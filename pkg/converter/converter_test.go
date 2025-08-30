@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/models"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/parser"
 	"github.com/stretchr/testify/assert"
@@ -236,9 +238,86 @@ func TestCreateOutputSchemaArray(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, "object", items["type"])
 
+	// Verify nested properties in array items
+	itemsProps, ok := items["properties"].(map[string]any)
+	assert.True(t, ok)
+	assert.Contains(t, itemsProps, "id")
+	assert.Contains(t, itemsProps, "name")
+	assert.Contains(t, itemsProps, "email")
+
 	// Verify required fields
 	required, ok := outputSchema["required"].([]string)
 	assert.True(t, ok)
 	assert.Contains(t, required, "users")
 	assert.Contains(t, required, "total")
+}
+
+func TestConvertPropertiesRecursive(t *testing.T) {
+	// Create a new parser
+	p := parser.NewParser()
+
+	// Parse the test file
+	err := p.ParseFile("../../test/output-schema-test.json")
+	assert.NoError(t, err)
+
+	// Create a converter
+	c := NewConverter(p, models.ConvertOptions{
+		ServerName: "test-server",
+	})
+
+	// Get the document and user operation to test nested properties
+	doc := p.GetDocument()
+	userOperation := doc.Paths.Find("/user/{id}").Get
+
+	// Get the response schema
+	var successResponse *openapi3.Response
+	if userOperation.Responses != nil {
+		for code, responseRef := range userOperation.Responses {
+			if strings.HasPrefix(code, "2") && responseRef != nil && responseRef.Value != nil {
+				successResponse = responseRef.Value
+				break
+			}
+		}
+	}
+
+	assert.NotNil(t, successResponse)
+	assert.NotNil(t, successResponse.Content)
+
+	// Get the schema from the first content type
+	var schema *openapi3.Schema
+	for _, mediaType := range successResponse.Content {
+		if mediaType.Schema != nil && mediaType.Schema.Value != nil {
+			schema = mediaType.Schema.Value
+			break
+		}
+	}
+
+	assert.NotNil(t, schema)
+
+	// Test the convertProperties function directly
+	if schema.Type == "object" && len(schema.Properties) > 0 {
+		properties := c.convertProperties(schema.Properties, schema.Required)
+
+		// Verify top-level properties
+		assert.Contains(t, properties, "id")
+		assert.Contains(t, properties, "name")
+		assert.Contains(t, properties, "email")
+		assert.Contains(t, properties, "profile")
+
+		// Verify nested properties in profile
+		profileProp, ok := properties["profile"].(map[string]any)
+		assert.True(t, ok)
+		assert.Equal(t, "object", profileProp["type"])
+
+		profileProps, ok := profileProp["properties"].(map[string]any)
+		assert.True(t, ok)
+		assert.Contains(t, profileProps, "bio")
+		assert.Contains(t, profileProps, "website")
+
+		// Verify bio property in nested profile
+		bioProp, ok := profileProps["bio"].(map[string]any)
+		assert.True(t, ok)
+		assert.Equal(t, "string", bioProp["type"])
+		assert.Equal(t, "User biography", bioProp["description"])
+	}
 }

@@ -1,0 +1,121 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Deep Nested Test API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/deep": {
+      "get": {
+        "summary": "Get deep nested data",
+        "description": "Retrieve data with multiple levels of nesting",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "type": "object",
+                      "description": "Company information",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Company name"
+                        },
+                        "departments": {
+                          "type": "array",
+                          "description": "Company departments",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string",
+                                "description": "Department name"
+                              },
+                              "manager": {
+                                "type": "object",
+                                "description": "Department manager",
+                                "properties": {
+                                  "name": {
+                                    "type": "string",
+                                    "description": "Manager name"
+                                  },
+                                  "contact": {
+                                    "type": "object",
+                                    "description": "Manager contact info",
+                                    "properties": {
+                                      "email": {
+                                        "type": "string",
+                                        "description": "Manager email"
+                                      },
+                                      "phone": {
+                                        "type": "string",
+                                        "description": "Manager phone"
+                                      }
+                                    }
+                                  }
+                                }
+                              },
+                              "employees": {
+                                "type": "array",
+                                "description": "Department employees",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "integer",
+                                      "description": "Employee ID"
+                                    },
+                                    "name": {
+                                      "type": "string",
+                                      "description": "Employee name"
+                                    },
+                                    "skills": {
+                                      "type": "array",
+                                      "description": "Employee skills",
+                                      "items": {
+                                        "type": "object",
+                                        "properties": {
+                                          "name": {
+                                            "type": "string",
+                                            "description": "Skill name"
+                                          },
+                                          "level": {
+                                            "type": "string",
+                                            "description": "Skill level",
+                                            "enum": [
+                                              "beginner",
+                                              "intermediate",
+                                              "expert"
+                                            ]
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "required": ["company"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
