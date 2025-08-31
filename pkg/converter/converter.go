@@ -386,7 +386,7 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						arg.Enum = propRef.Value.Enum
 					}
 
-					// Handle array type
+					// Handle array type recursively
 					if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
 						arg.Items = map[string]any{
 							"type":        propRef.Value.Items.Value.Type,
@@ -395,26 +395,24 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						if propRef.Value.Items.Value.MinItems > 0 {
 							arg.Items["minItems"] = propRef.Value.Items.Value.MinItems
 						}
-						if propRef.Value.Items.Value.Type == "object" && propRef.Value.Items.Value.Properties != nil {
-							arg.Items["properties"] = propRef.Value.Items.Value.Properties
+
+						// Recursively handle array items if they are objects
+						if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
+							nestedProps := c.convertNestedProperties(propRef.Value.Items.Value)
+							if nestedProps != nil {
+								arg.Items["properties"] = nestedProps["properties"]
+								if required, ok := nestedProps["required"]; ok {
+									arg.Items["required"] = required
+								}
+							}
 						}
 					}
-					// Handle object type
+
+					// Handle object type recursively
 					if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
-						arg.Properties = make(map[string]any)
-						for subPropName, subPropRef := range propRef.Value.Properties {
-							if subPropRef.Value != nil {
-								subProp := make(map[string]any)
-								subProp["type"] = subPropRef.Value.Type
-								if subPropRef.Value.Default != nil {
-									subProp["default"] = subPropRef.Value.Default
-								}
-								subProp["description"] = subPropRef.Value.Description
-								if subPropRef.Value.Enum != nil {
-									subProp["enum"] = subPropRef.Value.Enum
-								}
-								arg.Properties[subPropName] = subProp
-							}
+						nestedProps := c.convertNestedProperties(propRef.Value)
+						if nestedProps != nil {
+							arg.Properties = nestedProps["properties"].(map[string]any)
 						}
 					}
 					// Handle allOf
@@ -809,6 +807,84 @@ func (c *Converter) convertProperties(properties map[string]*openapi3.SchemaRef,
 		}
 
 		result[propName] = propSchema
+	}
+
+	return result
+}
+
+// convertNestedProperties recursively converts nested properties for request body arguments
+func (c *Converter) convertNestedProperties(schema *openapi3.Schema) map[string]any {
+	if schema == nil {
+		return nil
+	}
+
+	result := make(map[string]any)
+
+	// Handle object type with properties
+	if schema.Type == "object" && len(schema.Properties) > 0 {
+		properties := make(map[string]any)
+
+		for propName, propRef := range schema.Properties {
+			if propRef.Value == nil {
+				continue
+			}
+
+			propSchema := make(map[string]any)
+
+			// Add fields in alphabetical order for deterministic output: default, description, enum, type
+			if propRef.Value.Default != nil {
+				propSchema["default"] = propRef.Value.Default
+			}
+
+			if propRef.Value.Description != "" {
+				propSchema["description"] = propRef.Value.Description
+			}
+
+			if len(propRef.Value.Enum) > 0 {
+				propSchema["enum"] = propRef.Value.Enum
+			}
+
+			propSchema["type"] = propRef.Value.Type
+
+			// Recursively handle nested object properties
+			if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
+				nestedProps := c.convertNestedProperties(propRef.Value)
+				if nestedProps != nil {
+					propSchema["properties"] = nestedProps
+				}
+			}
+
+			// Handle array type recursively
+			if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+				itemsSchema := make(map[string]any)
+				itemsSchema["type"] = propRef.Value.Items.Value.Type
+				if propRef.Value.Items.Value.Description != "" {
+					itemsSchema["description"] = propRef.Value.Items.Value.Description
+				}
+				if propRef.Value.Items.Value.MinItems > 0 {
+					itemsSchema["minItems"] = propRef.Value.Items.Value.MinItems
+				}
+
+				// Recursively handle array items if they are objects
+				if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(propRef.Value.Items.Value)
+					if nestedProps != nil {
+						itemsSchema["properties"] = nestedProps
+					}
+				}
+
+				propSchema["items"] = itemsSchema
+			}
+
+			properties[propName] = propSchema
+		}
+
+		result["properties"] = properties
+
+		// Add required fields if any
+		if len(schema.Required) > 0 {
+			result["required"] = schema.Required
+		}
 	}
 
 	return result

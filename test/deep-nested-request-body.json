@@ -1,0 +1,140 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Deep Nested Request Body Test API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/companies": {
+      "post": {
+        "summary": "Create company with nested data",
+        "description": "Create a new company with deep nested structure",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Company name"
+                  },
+                  "departments": {
+                    "type": "array",
+                    "description": "Company departments",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "description": "Department name"
+                        },
+                        "manager": {
+                          "type": "object",
+                          "description": "Department manager",
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "description": "Manager name"
+                            },
+                            "contact": {
+                              "type": "object",
+                              "description": "Manager contact info",
+                              "properties": {
+                                "email": {
+                                  "type": "string",
+                                  "description": "Manager email"
+                                },
+                                "phone": {
+                                  "type": "string",
+                                  "description": "Manager phone"
+                                }
+                              },
+                              "required": ["email"]
+                            }
+                          },
+                          "required": ["name", "contact"]
+                        },
+                        "employees": {
+                          "type": "array",
+                          "description": "Department employees",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer",
+                                "description": "Employee ID"
+                              },
+                              "name": {
+                                "type": "string",
+                                "description": "Employee name"
+                              },
+                              "skills": {
+                                "type": "array",
+                                "description": "Employee skills",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "Skill name"
+                                    },
+                                    "level": {
+                                      "type": "string",
+                                      "description": "Skill level",
+                                      "enum": [
+                                        "beginner",
+                                        "intermediate",
+                                        "expert"
+                                      ]
+                                    }
+                                  },
+                                  "required": ["name"]
+                                }
+                              }
+                            },
+                            "required": ["id", "name"]
+                          }
+                        }
+                      },
+                      "required": ["name", "manager"]
+                    }
+                  }
+                },
+                "required": ["name", "departments"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Company created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "Company ID"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "Success message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

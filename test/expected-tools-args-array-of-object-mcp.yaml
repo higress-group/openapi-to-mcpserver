@@ -12,9 +12,9 @@ tools:
           description: image
           properties:
             image:
-              type: string
-              description: 图片base64
               default: ""
+              description: 图片base64
+              type: string
           type: object
         position: body
     requestTemplate:
