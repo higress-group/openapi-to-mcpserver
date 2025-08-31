@@ -1,0 +1,116 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Array Complex Items Test API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "Get users with complex array items",
+        "description": "Retrieve users with detailed profiles in array items",
+        "parameters": [
+          {
+            "name": "tags",
+            "in": "query",
+            "description": "Filter by tags (array of objects)",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Tag name"
+                  },
+                  "color": {
+                    "type": "string",
+                    "description": "Tag color",
+                    "enum": ["red", "blue", "green"]
+                  }
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "description": "List of users",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "User ID"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "User name"
+                          },
+                          "profile": {
+                            "type": "object",
+                            "description": "User profile",
+                            "properties": {
+                              "bio": {
+                                "type": "string",
+                                "description": "User biography"
+                              },
+                              "skills": {
+                                "type": "array",
+                                "description": "User skills",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "name": {
+                                      "type": "string",
+                                      "description": "Skill name"
+                                    },
+                                    "level": {
+                                      "type": "string",
+                                      "description": "Skill level",
+                                      "enum": [
+                                        "beginner",
+                                        "intermediate",
+                                        "expert"
+                                      ]
+                                    }
+                                  },
+                                  "required": ["name"]
+                                }
+                              }
+                            },
+                            "required": ["bio"]
+                          }
+                        },
+                        "required": ["id", "name"]
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of users"
+                    }
+                  },
+                  "required": ["users", "total"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

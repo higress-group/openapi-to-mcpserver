@@ -315,25 +315,32 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 				arg.Enum = schema.Enum
 			}
 
-			// Handle array type
+			// Handle array type recursively
 			if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
 				arg.Items = map[string]any{
 					"type": schema.Items.Value.Type,
 				}
-			}
+				if schema.Items.Value.Description != "" {
+					arg.Items["description"] = schema.Items.Value.Description
+				}
 
-			// Handle object type
-			if schema.Type == "object" && len(schema.Properties) > 0 {
-				arg.Properties = make(map[string]any)
-				for propName, propRef := range schema.Properties {
-					if propRef.Value != nil {
-						arg.Properties[propName] = map[string]any{
-							"type": propRef.Value.Type,
-						}
-						if propRef.Value.Description != "" {
-							arg.Properties[propName].(map[string]any)["description"] = propRef.Value.Description
+				// Recursively handle array items if they are objects
+				if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(schema.Items.Value)
+					if nestedProps != nil {
+						arg.Items["properties"] = nestedProps["properties"]
+						if required, ok := nestedProps["required"]; ok {
+							arg.Items["required"] = required
 						}
 					}
+				}
+			}
+
+			// Handle object type recursively
+			if schema.Type == "object" && len(schema.Properties) > 0 {
+				nestedProps := c.convertNestedProperties(schema)
+				if nestedProps != nil {
+					arg.Properties = nestedProps["properties"].(map[string]any)
 				}
 			}
 		}
@@ -720,13 +727,23 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 			outputSchema["description"] = *successResponse.Description
 		}
 
-		// Handle array type
+		// Handle array type recursively
 		if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
 			itemsSchema := make(map[string]any)
 			itemsSchema["type"] = schema.Items.Value.Type
 			if schema.Items.Value.Description != "" {
 				itemsSchema["description"] = schema.Items.Value.Description
 			}
+
+			// Recursively handle array items if they are objects
+			if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
+				nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
+				itemsSchema["properties"] = nestedProps
+				if len(schema.Items.Value.Required) > 0 {
+					itemsSchema["required"] = schema.Items.Value.Required
+				}
+			}
+
 			outputSchema["items"] = itemsSchema
 		}
 
