@@ -504,3 +504,11 @@ When using the generated configuration with Higress:
 4. No additional configuration is required - the presence of output schemas enables the new features
 
 For more information about MCP Protocol 2025-06-18, refer to the [MCP specification](https://modelcontextprotocol.io/specification).
+
+## Contributing
+
+We welcome contributions from the community! Please see our [Contributing Guide](CONTRIBUTING.md) for information on how to get started.
+
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
