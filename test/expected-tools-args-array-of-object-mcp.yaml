@@ -12,9 +12,9 @@ tools:
           description: image
           properties:
             image:
-              type: string
-              description: 图片base64
               default: ""
+              description: 图片base64
+              type: string
           type: object
         position: body
     requestTemplate:
@@ -43,3 +43,20 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      properties:
+        code:
+          description: 状态值
+          type: number
+        data:
+          description: 数据
+          properties:
+            pages:
+              description: 识别pages
+              items:
+                description: 单张识别
+                type: string
+              type: array
+          type: object
+      type: object

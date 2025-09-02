@@ -1,0 +1,119 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Output Schema Test API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/users": {
+      "get": {
+        "summary": "Get users list",
+        "description": "Retrieve a list of users",
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "description": "List of users",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "description": "User ID"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "User name"
+                          },
+                          "email": {
+                            "type": "string",
+                            "description": "User email"
+                          }
+                        },
+                        "required": ["id", "name"]
+                      }
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of users"
+                    }
+                  },
+                  "required": ["users", "total"]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/{id}": {
+      "get": {
+        "summary": "Get user by ID",
+        "description": "Retrieve a single user by ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "User ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "description": "User ID"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "User name"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "User email"
+                    },
+                    "profile": {
+                      "type": "object",
+                      "description": "User profile information",
+                      "properties": {
+                        "bio": {
+                          "type": "string",
+                          "description": "User biography"
+                        },
+                        "website": {
+                          "type": "string",
+                          "description": "User website"
+                        }
+                      }
+                    }
+                  },
+                  "required": ["id", "name", "email"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

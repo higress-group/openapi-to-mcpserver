@@ -34,6 +34,17 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: Authentication successful
+      properties:
+        authenticated:
+          description: Authentication status
+          type: boolean
+        expires:
+          description: Token expiration time
+          type: string
+      type: object
   - name: getSecureResource
     description: Get secure resource
     args:
@@ -66,3 +77,11 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: Secure resource retrieved successfully
+      properties:
+        data:
+          description: Secure data
+          type: string
+      type: object

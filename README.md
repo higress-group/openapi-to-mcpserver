@@ -299,6 +299,8 @@ For more information about using this configuration with Higress REST-to-MCP, pl
 - Automatically sets parameter positions based on OpenAPI parameter locations
 - Handles path, query, header, cookie, and body parameters
 - Generates response templates with field descriptions and improved formatting for LLM understanding
+- **NEW**: Generates output schemas for MCP Protocol 2025-06-18 support
+- **NEW**: Supports structured content responses for enhanced MCP compatibility
 - Optional validation of OpenAPI specifications (disabled by default)
 - Supports template-based patching of the generated configuration
 
@@ -310,10 +312,21 @@ Example template file:
 
 ```yaml
 server:
+  name: "openapi-server"
   config:
     apiKey: ""
 
 tools:
+  outputSchema:
+    type: object
+    description: "Default output schema for all tools"
+    properties:
+      success:
+        type: boolean
+        description: "Indicates if the operation was successful"
+      message:
+        type: string
+        description: "Response message"
   requestTemplate:
     headers:
       - key: Authorization
@@ -325,7 +338,8 @@ tools:
 When applied, this template will:
 
 1. Add an `apiKey` field to the server config
-2. Add the specified headers to all tools in the configuration
+2. Add a default output schema to all tools (enabling MCP 2025-06-18 support)
+3. Add the specified headers to all tools in the configuration
 
 Usage:
 
@@ -432,6 +446,64 @@ You can use the `--template` option to:
 - Override or set `security` requirements for all tools via the `tools.requestTemplate.security` path in your template file.
 
 If the template defines `server.securitySchemes` or `tools.requestTemplate.security`, these will replace any schemes/requirements derived from the OpenAPI specification.
+
+## MCP Protocol 2025-06-18 Support
+
+This tool now supports the latest MCP Protocol version 2025-06-18, which introduces two key features:
+
+### 1. Output Schema
+
+Tools can now define schemas for their structured outputs. The tool automatically generates output schemas based on your OpenAPI response definitions.
+
+**Example generated output schema:**
+
+```yaml
+tools:
+  - name: getUser
+    description: Get user information
+    # ... other fields ...
+    outputSchema:
+      type: object
+      description: User information
+      properties:
+        id:
+          type: integer
+          description: User ID
+        name:
+          type: string
+          description: User name
+        email:
+          type: string
+          description: User email
+      required:
+        - id
+        - name
+```
+
+### 2. Structured Content
+
+For MCP 2025-06-18 clients, responses include both traditional text content and structured JSON data. This allows MCP clients to process responses in a more structured way.
+
+**MCP 2025-06-18 is automatically enabled when output schemas are present.**
+
+### Backward Compatibility
+
+The tool maintains full backward compatibility:
+
+- Older MCP clients continue to work without changes
+- New features are automatically enabled when output schemas are generated
+- Existing functionality remains unchanged
+
+### Using with Higress
+
+When using the generated configuration with Higress:
+
+1. The tool automatically generates output schemas for all endpoints with response definitions
+2. MCP clients that support 2025-06-18 will automatically use the structured content
+3. MCP clients that don't support 2025-06-18 will continue to work with the traditional text responses
+4. No additional configuration is required - the presence of output schemas enables the new features
+
+For more information about MCP Protocol 2025-06-18, refer to the [MCP specification](https://modelcontextprotocol.io/specification).
 
 ## Contributing
 

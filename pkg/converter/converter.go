@@ -134,7 +134,7 @@ func (c *Converter) applyTemplate(config *models.MCPConfig) error {
 	}
 
 	// Apply tool template to all tools
-	if templateConfig.Tools.RequestTemplate != nil || templateConfig.Tools.ResponseTemplate != nil || templateConfig.Tools.Security != nil {
+	if templateConfig.Tools.RequestTemplate != nil || templateConfig.Tools.ResponseTemplate != nil || templateConfig.Tools.Security != nil || templateConfig.Tools.OutputSchema != nil {
 		for i := range config.Tools {
 			// Apply request template
 			if templateConfig.Tools.RequestTemplate != nil {
@@ -181,6 +181,11 @@ func (c *Converter) applyTemplate(config *models.MCPConfig) error {
 			// Apply security
 			if templateConfig.Tools.Security != nil {
 				config.Tools[i].Security = templateConfig.Tools.Security
+			}
+
+			// Apply output schema
+			if templateConfig.Tools.OutputSchema != nil {
+				config.Tools[i].OutputSchema = templateConfig.Tools.OutputSchema
 			}
 		}
 	}
@@ -268,6 +273,16 @@ func (c *Converter) convertOperation(path, method string, operation *openapi3.Op
 	}
 	tool.ResponseTemplate = *responseTemplate
 
+	// Create output schema based on OpenAPI response schema (only if response schema exists)
+	outputSchema, err := c.createOutputSchema(operation)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create output schema: %w", err)
+	}
+	// Only set outputSchema if it was successfully generated (not nil)
+	if outputSchema != nil {
+		tool.OutputSchema = outputSchema
+	}
+
 	return tool, nil
 }
 
@@ -300,25 +315,32 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 				arg.Enum = schema.Enum
 			}
 
-			// Handle array type
+			// Handle array type recursively
 			if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
 				arg.Items = map[string]any{
 					"type": schema.Items.Value.Type,
 				}
-			}
+				if schema.Items.Value.Description != "" {
+					arg.Items["description"] = schema.Items.Value.Description
+				}
 
-			// Handle object type
-			if schema.Type == "object" && len(schema.Properties) > 0 {
-				arg.Properties = make(map[string]any)
-				for propName, propRef := range schema.Properties {
-					if propRef.Value != nil {
-						arg.Properties[propName] = map[string]any{
-							"type": propRef.Value.Type,
-						}
-						if propRef.Value.Description != "" {
-							arg.Properties[propName].(map[string]any)["description"] = propRef.Value.Description
+				// Recursively handle array items if they are objects
+				if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(schema.Items.Value)
+					if nestedProps != nil {
+						arg.Items["properties"] = nestedProps["properties"]
+						if required, ok := nestedProps["required"]; ok {
+							arg.Items["required"] = required
 						}
 					}
+				}
+			}
+
+			// Handle object type recursively
+			if schema.Type == "object" && len(schema.Properties) > 0 {
+				nestedProps := c.convertNestedProperties(schema)
+				if nestedProps != nil {
+					arg.Properties = nestedProps["properties"].(map[string]any)
 				}
 			}
 		}
@@ -371,7 +393,7 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						arg.Enum = propRef.Value.Enum
 					}
 
-					// Handle array type
+					// Handle array type recursively
 					if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
 						arg.Items = map[string]any{
 							"type":        propRef.Value.Items.Value.Type,
@@ -380,26 +402,24 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						if propRef.Value.Items.Value.MinItems > 0 {
 							arg.Items["minItems"] = propRef.Value.Items.Value.MinItems
 						}
-						if propRef.Value.Items.Value.Type == "object" && propRef.Value.Items.Value.Properties != nil {
-							arg.Items["properties"] = propRef.Value.Items.Value.Properties
+
+						// Recursively handle array items if they are objects
+						if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
+							nestedProps := c.convertNestedProperties(propRef.Value.Items.Value)
+							if nestedProps != nil {
+								arg.Items["properties"] = nestedProps["properties"]
+								if required, ok := nestedProps["required"]; ok {
+									arg.Items["required"] = required
+								}
+							}
 						}
 					}
-					// Handle object type
+
+					// Handle object type recursively
 					if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
-						arg.Properties = make(map[string]any)
-						for subPropName, subPropRef := range propRef.Value.Properties {
-							if subPropRef.Value != nil {
-								subProp := make(map[string]any)
-								subProp["type"] = subPropRef.Value.Type
-								if subPropRef.Value.Default != nil {
-									subProp["default"] = subPropRef.Value.Default
-								}
-								subProp["description"] = subPropRef.Value.Description
-								if subPropRef.Value.Enum != nil {
-									subProp["enum"] = subPropRef.Value.Enum
-								}
-								arg.Properties[subPropName] = subProp
-							}
+						nestedProps := c.convertNestedProperties(propRef.Value)
+						if nestedProps != nil {
+							arg.Properties = nestedProps["properties"].(map[string]any)
 						}
 					}
 					// Handle allOf
@@ -666,6 +686,225 @@ func getDescription(operation *openapi3.Operation) string {
 		return operation.Summary
 	}
 	return operation.Description
+}
+
+// createOutputSchema creates an MCP output schema from an OpenAPI operation response
+func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[string]any, error) {
+	// Find the success response (200, 201, etc.)
+	var successResponse *openapi3.Response
+	if operation.Responses != nil {
+		for code, responseRef := range operation.Responses {
+			if strings.HasPrefix(code, "2") && responseRef != nil && responseRef.Value != nil {
+				successResponse = responseRef.Value
+				break
+			}
+		}
+	}
+
+	// If there's no success response, return empty schema
+	if successResponse == nil || len(successResponse.Content) == 0 {
+		return nil, nil
+	}
+
+	// Process the first content type (typically application/json)
+	for contentType, mediaType := range successResponse.Content {
+		if mediaType.Schema == nil || mediaType.Schema.Value == nil {
+			continue
+		}
+
+		schema := mediaType.Schema.Value
+
+		// Convert OpenAPI schema to MCP output schema
+		outputSchema := make(map[string]any)
+
+		// Set basic type information
+		if schema.Type != "" {
+			outputSchema["type"] = schema.Type
+		}
+
+		// Add description if available
+		if successResponse.Description != nil && *successResponse.Description != "" {
+			outputSchema["description"] = *successResponse.Description
+		}
+
+		// Handle array type recursively
+		if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
+			itemsSchema := make(map[string]any)
+			itemsSchema["type"] = schema.Items.Value.Type
+			if schema.Items.Value.Description != "" {
+				itemsSchema["description"] = schema.Items.Value.Description
+			}
+
+			// Recursively handle array items if they are objects
+			if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
+				nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
+				itemsSchema["properties"] = nestedProps
+				if len(schema.Items.Value.Required) > 0 {
+					itemsSchema["required"] = schema.Items.Value.Required
+				}
+			}
+
+			outputSchema["items"] = itemsSchema
+		}
+
+		// Handle object type with properties
+		if schema.Type == "object" && len(schema.Properties) > 0 {
+			properties := c.convertProperties(schema.Properties, schema.Required)
+			outputSchema["properties"] = properties
+
+			// Add required fields if any
+			if len(schema.Required) > 0 {
+				outputSchema["required"] = schema.Required
+			}
+		}
+
+		// Add content type information
+		outputSchema["contentType"] = contentType
+
+		return outputSchema, nil
+	}
+
+	return nil, nil
+}
+
+// convertProperties recursively converts OpenAPI properties to MCP output schema format
+func (c *Converter) convertProperties(properties map[string]*openapi3.SchemaRef, required []string) map[string]any {
+	result := make(map[string]any)
+
+	// Get property names and sort them alphabetically for consistent output
+	propNames := make([]string, 0, len(properties))
+	for propName := range properties {
+		propNames = append(propNames, propName)
+	}
+	sort.Strings(propNames)
+
+	// Process each property
+	for _, propName := range propNames {
+		propRef := properties[propName]
+		if propRef.Value == nil {
+			continue
+		}
+
+		propSchema := make(map[string]any)
+		propSchema["type"] = propRef.Value.Type
+
+		if propRef.Value.Description != "" {
+			propSchema["description"] = propRef.Value.Description
+		}
+
+		// Handle nested object properties recursively
+		if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
+			nestedProps := c.convertProperties(propRef.Value.Properties, propRef.Value.Required)
+			propSchema["properties"] = nestedProps
+
+			// Add required fields for nested objects
+			if len(propRef.Value.Required) > 0 {
+				propSchema["required"] = propRef.Value.Required
+			}
+		}
+
+		// Handle array properties recursively
+		if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+			itemsSchema := make(map[string]any)
+			itemsSchema["type"] = propRef.Value.Items.Value.Type
+			if propRef.Value.Items.Value.Description != "" {
+				itemsSchema["description"] = propRef.Value.Items.Value.Description
+			}
+
+			// Recursively handle array items if they are objects
+			if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
+				nestedProps := c.convertProperties(propRef.Value.Items.Value.Properties, propRef.Value.Items.Value.Required)
+				itemsSchema["properties"] = nestedProps
+				if len(propRef.Value.Items.Value.Required) > 0 {
+					itemsSchema["required"] = propRef.Value.Items.Value.Required
+				}
+			}
+
+			propSchema["items"] = itemsSchema
+		}
+
+		result[propName] = propSchema
+	}
+
+	return result
+}
+
+// convertNestedProperties recursively converts nested properties for request body arguments
+func (c *Converter) convertNestedProperties(schema *openapi3.Schema) map[string]any {
+	if schema == nil {
+		return nil
+	}
+
+	result := make(map[string]any)
+
+	// Handle object type with properties
+	if schema.Type == "object" && len(schema.Properties) > 0 {
+		properties := make(map[string]any)
+
+		for propName, propRef := range schema.Properties {
+			if propRef.Value == nil {
+				continue
+			}
+
+			propSchema := make(map[string]any)
+
+			// Add fields in alphabetical order for deterministic output: default, description, enum, type
+			if propRef.Value.Default != nil {
+				propSchema["default"] = propRef.Value.Default
+			}
+
+			if propRef.Value.Description != "" {
+				propSchema["description"] = propRef.Value.Description
+			}
+
+			if len(propRef.Value.Enum) > 0 {
+				propSchema["enum"] = propRef.Value.Enum
+			}
+
+			propSchema["type"] = propRef.Value.Type
+
+			// Recursively handle nested object properties
+			if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
+				nestedProps := c.convertNestedProperties(propRef.Value)
+				if nestedProps != nil {
+					propSchema["properties"] = nestedProps
+				}
+			}
+
+			// Handle array type recursively
+			if propRef.Value.Type == "array" && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+				itemsSchema := make(map[string]any)
+				itemsSchema["type"] = propRef.Value.Items.Value.Type
+				if propRef.Value.Items.Value.Description != "" {
+					itemsSchema["description"] = propRef.Value.Items.Value.Description
+				}
+				if propRef.Value.Items.Value.MinItems > 0 {
+					itemsSchema["minItems"] = propRef.Value.Items.Value.MinItems
+				}
+
+				// Recursively handle array items if they are objects
+				if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(propRef.Value.Items.Value)
+					if nestedProps != nil {
+						itemsSchema["properties"] = nestedProps
+					}
+				}
+
+				propSchema["items"] = itemsSchema
+			}
+
+			properties[propName] = propSchema
+		}
+
+		result["properties"] = properties
+
+		// Add required fields if any
+		if len(schema.Required) > 0 {
+			result["required"] = schema.Required
+		}
+	}
+
+	return result
 }
 
 // contains checks if a string slice contains a string

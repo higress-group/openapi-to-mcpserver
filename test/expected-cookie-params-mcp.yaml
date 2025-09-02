@@ -35,6 +35,20 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: User preferences
+      properties:
+        language:
+          description: Language preference
+          type: string
+        notifications:
+          description: Notification preference
+          type: boolean
+        theme:
+          description: UI theme preference
+          type: string
+      type: object
   - name: getSession
     description: Get session information
     args:
@@ -65,3 +79,17 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: Session information
+      properties:
+        created:
+          description: Session creation time
+          type: string
+        expires:
+          description: Session expiration time
+          type: string
+        userId:
+          description: User ID associated with the session
+          type: string
+      type: object

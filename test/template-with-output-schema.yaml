@@ -1,0 +1,21 @@
+server:
+  name: "openapi-server"
+  config:
+    baseUrl: "https://api.example.com"
+tools:
+  outputSchema:
+    type: object
+    description: "Default output schema for all tools"
+    properties:
+      success:
+        type: boolean
+        description: "Indicates if the operation was successful"
+      message:
+        type: string
+        description: "Response message"
+  requestTemplate:
+    headers:
+      - key: "Authorization"
+        value: "Bearer {{.config.apiKey}}"
+      - key: "X-API-Version"
+        value: "v1"

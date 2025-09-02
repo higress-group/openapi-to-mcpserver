@@ -85,3 +85,17 @@ tools:
 
         ## Original Response
 
+    outputSchema:
+      contentType: application/json
+      description: File uploaded successfully
+      properties:
+        fileId:
+          description: ID of the uploaded file
+          type: string
+        fileName:
+          description: Name of the uploaded file
+          type: string
+        fileSize:
+          description: Size of the uploaded file in bytes
+          type: integer
+      type: object
