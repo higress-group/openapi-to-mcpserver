@@ -342,6 +342,10 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 				arg.Enum = schema.Enum
 			}
 
+			if schema.Default != nil {
+				arg.Default = schema.Default
+			}
+
 			// Handle array type recursively
 			if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
 				arg.Items = map[string]any{
@@ -445,6 +449,9 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						Position:    "body", // Set position to "body" for request body parameters
 					}
 
+					if propRef.Value.Default != nil {
+						arg.Default = propRef.Value.Default
+					}
 					// Handle enum values
 					if len(propRef.Value.Enum) > 0 {
 						arg.Enum = propRef.Value.Enum
