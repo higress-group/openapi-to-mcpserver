@@ -44,7 +44,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       properties:
         code:
           description: 状态值

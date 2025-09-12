@@ -707,7 +707,7 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 	}
 
 	// Process the first content type (typically application/json)
-	for contentType, mediaType := range successResponse.Content {
+	for _, mediaType := range successResponse.Content {
 		if mediaType.Schema == nil || mediaType.Schema.Value == nil {
 			continue
 		}
@@ -757,9 +757,6 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 				outputSchema["required"] = schema.Required
 			}
 		}
-
-		// Add content type information
-		outputSchema["contentType"] = contentType
 
 		return outputSchema, nil
 	}

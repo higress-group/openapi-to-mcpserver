@@ -159,7 +159,6 @@ func TestCreateOutputSchema(t *testing.T) {
 	// Verify output schema structure
 	assert.Equal(t, "object", outputSchema["type"])
 	assert.Equal(t, "Successful response", outputSchema["description"])
-	assert.Equal(t, "application/json", outputSchema["contentType"])
 
 	// Verify properties
 	properties, ok := outputSchema["properties"].(map[string]any)

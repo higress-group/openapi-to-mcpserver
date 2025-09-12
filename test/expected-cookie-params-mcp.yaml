@@ -36,7 +36,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: User preferences
       properties:
         language:
@@ -80,7 +79,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: Session information
       properties:
         created:

@@ -35,7 +35,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: Authentication successful
       properties:
         authenticated:
@@ -78,7 +77,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: Secure resource retrieved successfully
       properties:
         data:
