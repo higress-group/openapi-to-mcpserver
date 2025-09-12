@@ -86,7 +86,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: File uploaded successfully
       properties:
         fileId:

@@ -54,7 +54,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: OK
       properties:
         email:

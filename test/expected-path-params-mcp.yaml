@@ -32,7 +32,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: User information
       properties:
         email:

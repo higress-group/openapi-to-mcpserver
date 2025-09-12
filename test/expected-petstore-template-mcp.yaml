@@ -63,7 +63,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: A paged array of pets
       properties:
         nextPage:
@@ -120,7 +119,6 @@ tools:
         ## Original Response
 
     outputSchema:
-      contentType: application/json
       description: Expected response to a valid request
       properties:
         id:
