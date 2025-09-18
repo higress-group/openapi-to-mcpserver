@@ -24,6 +24,12 @@ func TestEndToEndConversion(t *testing.T) {
 		templatePath   string
 	}{
 		{
+			name:           "With Ref API",
+			inputFile:      "../../test/with-ref.json",
+			expectedOutput: "../../test/expected-with-ref-mcp.yaml",
+			serverName:     "with-ref-api",
+		},
+		{
 			name:           "Petstore API",
 			inputFile:      "../../test/petstore.json",
 			expectedOutput: "../../test/expected-petstore-mcp.yaml",
@@ -70,13 +76,13 @@ func TestEndToEndConversion(t *testing.T) {
 			name:           "Tools Args array of object",
 			inputFile:      "../../test/tools-args-array-of-object.json",
 			expectedOutput: "../../test/expected-tools-args-array-of-object-mcp.yaml",
-      serverName:     "openapi-server",
-    },
-    {
+			serverName:     "openapi-server",
+		},
+		{
 			name:           "Handle AllOf Parameters",
 			inputFile:      "../../test/allof-params.json",
 			expectedOutput: "../../test/expected-allof-params-mcp.yaml",
-      serverName:     "openapi-server",
+			serverName:     "openapi-server",
 		},
 		{
 			name:           "Output Schema Test",
