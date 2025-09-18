@@ -1,0 +1,384 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "LibraryHub API",
+    "description": "Digital library management system API",
+    "termsOfService": "",
+    "contact": {
+      "name": "DevTeam",
+      "url": "https://library-hub.example.com",
+      "email": "support@library-hub.example.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://springdoc.org"
+    },
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.library-hub.example.com/v1/library",
+      "description": "Library API server endpoint"
+    }
+  ],
+  "paths": {
+    "/api/books/recommendation": {
+      "post": {
+        "tags": [
+          "book recommendation API"
+        ],
+        "summary": "Book recommendation engine",
+        "description": "Generate personalized book recommendations",
+        "operationId": "generateRecommendations",
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "User authentication token",
+            "required": true,
+            "example": "Bearer lib123token456"
+          },
+          {
+            "name": "libraryId",
+            "in": "header",
+            "description": "Library branch identifier",
+            "required": true,
+            "example": "LIB001"
+          },
+          {
+            "name": "regionCode",
+            "in": "header",
+            "description": "Geographic region code",
+            "required": true,
+            "example": "US-CA"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendationRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendationResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+    "RecommendationRequestDTO": {
+      "type": "object",
+      "properties": {
+        "readerProfileDTO": {
+          "$ref": "#/components/schemas/ReaderProfileDTO",
+          "refType": "ReaderProfileDTO"
+        },
+        "preferenceSettingsDTOList": {
+          "type": "array",
+          "description": "User reading preferences and settings",
+          "items": {
+            "$ref": "#/components/schemas/PreferenceSettingsDTO"
+          },
+          "refType": "PreferenceSettingsDTO"
+        }
+      },
+      "description": "Book recommendation request data"
+    },
+    "RecommendationResponseVO": {
+      "type": "object",
+      "properties": {
+        "readerProfileDTO": {
+          "$ref": "#/components/schemas/ReaderProfileDTO"
+        },
+        "preferenceSettingsDTOList": {
+          "type": "array",
+          "description": "User reading preferences and settings",
+          "items": {
+            "$ref": "#/components/schemas/PreferenceSettingsDTO"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "Status (200: Success, 400: Invalid params, 401: Book unavailable, 402: Access denied, 403: Account suspended)"
+        },
+        "message": {
+          "type": "string",
+          "description": "Response message"
+        },
+        "recommendationResult": {
+          "$ref": "#/components/schemas/RecommendationResult"
+        }
+      },
+      "description": "Book recommendation response"
+    },
+    "ReaderProfileDTO": {
+      "type": "object",
+      "properties": {
+        "readerName": {
+          "type": "string",
+          "description": "Reader name",
+          "example": "Jane Doe",
+          "refType": null
+        },
+        "readerAge": {
+          "type": "integer",
+          "description": "Reader age",
+          "format": "int32",
+          "example": 28,
+          "refType": null
+        },
+        "membershipLevel": {
+          "type": "string",
+          "description": "Library membership level",
+          "example": "Premium",
+          "refType": null
+        },
+        "readingHistory": {
+          "type": "string",
+          "description": "Reading history summary",
+          "example": "Frequent fiction reader with sci-fi preference",
+          "refType": null
+        },
+        "favoriteGenres": {
+          "type": "string",
+          "description": "Preferred book categories",
+          "example": "Science Fiction, Mystery, Biography",
+          "refType": null
+        }
+      },
+      "description": "Reader profile information"
+    },
+    "PreferenceSettingsDTO": {
+      "required": [
+        "categoryId",
+        "settingCode"
+      ],
+      "type": "object",
+      "properties": {
+        "categoryId": {
+          "type": "string",
+          "description": "Book category identifier",
+          "example": "SF001",
+          "refType": null
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Book category name",
+          "example": "Science Fiction Classics",
+          "refType": null
+        },
+        "bookTitle": {
+          "type": "string",
+          "description": "Recommended book title",
+          "example": "The Foundation Series",
+          "refType": null
+        },
+        "settingCode": {
+          "type": "string",
+          "description": "Preference setting code",
+          "example": "SF001",
+          "refType": null
+        },
+        "configurationList": {
+          "type": "array",
+          "description": "Book preference configurations",
+          "items": {
+            "$ref": "#/components/schemas/ConfigurationDto"
+          },
+          "enum": [
+            "format-Book Format",
+            "language-Language Preference", 
+            "difficulty-Reading Level",
+            "newReleases-Include New Releases",
+            "availability-Availability Filter",
+            "pageCount-Page Count Range",
+            "location-Reading Location",
+            "duration-Reading Duration",
+            "digital-Digital Format",
+            "audiobook-Audiobook Option",
+            "series-Series Preference",
+            "rating-Minimum Rating",
+            "publisher-Publisher Filter",
+            "year-Publication Year",
+            "genre-Sub-genre Filter",
+            "author-Preferred Authors"
+          ],
+          "refType": "ConfigurationDto"
+        }
+      },
+      "description": "Reading preference settings"
+    },
+    "ConfigurationDto": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Configuration key",
+          "refType": null
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name",
+          "refType": null
+        },
+        "value": {
+          "type": "string",
+          "description": "Configuration value",
+          "refType": null
+        },
+        "unit": {
+          "type": "string",
+          "description": "Value unit",
+          "refType": null
+        },
+        "formattedPrice": {
+          "type": "string",
+          "refType": null
+        },
+        "displayValue": {
+          "type": "string",
+          "refType": null
+        }
+      },
+      "description": "Configuration option"
+    },
+    "RecommendationResult": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "Recommendation session ID",
+          "refType": null
+        },
+        "totalBooks": {
+          "type": "string",
+          "description": "Total recommended books count",
+          "refType": null
+        },
+        "totalCategories": {
+          "type": "string",
+          "description": "Total categories covered",
+          "refType": null
+        },
+        "readingPlan": {
+          "$ref": "#/components/schemas/ReadingPlan",
+          "refType": "ReadingPlan"
+        },
+        "summaryText": {
+          "type": "string",
+          "description": "Recommendation summary (example: Jane Doe, Premium member, 28 years old, [Foundation Series] Format: Paperback|New releases: Yes|Genre: Science Fiction|Pages: 500+|Location: Home reading)",
+          "refType": null
+        },
+        "analysisKey": {
+          "type": "string",
+          "description": "Analysis data key (returned on recommendation failure)",
+          "refType": null
+        }
+      },
+      "description": "Book recommendation result"
+    },
+    "ReadingPlan": {
+      "type": "object",
+      "properties": {
+        "planDuration": {
+          "type": "string",
+          "description": "Reading plan duration",
+          "refType": null
+        },
+        "currentWeek": {
+          "type": "string",
+          "description": "Current reading week",
+          "refType": null
+        },
+        "weeklyGoals": {
+          "type": "array",
+          "properties": {
+            "empty": {
+              "type": "boolean"
+            }
+          },
+          "description": "Weekly reading goals details (ordered by week)",
+          "items": {
+            "type": "object",
+            "description": "Weekly reading goals details (ordered by week)"
+          },
+          "refType": "object"
+        },
+        "goalCategories": {
+          "type": "array",
+          "description": "Reading goal categories",
+          "items": {
+            "$ref": "#/components/schemas/GoalCategoryDto"
+          },
+          "refType": "GoalCategoryDto"
+        }
+      },
+      "description": "Personal reading plan"
+    },
+    "GoalCategoryDto": {
+      "type": "object",
+      "properties": {
+        "categoryPath": {
+          "type": "string",
+          "description": "Full category path (level1_level2_level3, joined by '_')",
+          "refType": null
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Category name",
+          "refType": null
+        },
+        "columnSpan": {
+          "type": "integer",
+          "description": "Table column span",
+          "format": "int32",
+          "refType": null
+        },
+        "rowSpan": {
+          "type": "integer",
+          "description": "Table row span",
+          "format": "int32",
+          "refType": null
+        },
+        "goalAttribute": {
+          "type": "string",
+          "description": "Reading goal attribute code",
+          "refType": null
+        },
+        "subCategoryList": {
+          "type": "array",
+          "description": "Sub-category collection",
+          "items": {
+            "$ref": "#/components/schemas/GoalCategoryDto"
+          },
+          "refType": "GoalCategoryDto"
+        },
+        "attributeValues": {
+          "type": "array",
+          "description": "Goal attribute values",
+          "items": {
+            "type": "string",
+            "description": "Goal attribute values"
+          },
+          "refType": "string"
+        }
+      },
+      "description": "Reading goal category object"
+    }
+  }
+}
+}

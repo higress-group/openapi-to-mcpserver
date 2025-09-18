@@ -1,0 +1,362 @@
+server:
+  name: with-ref-api
+tools:
+  - name: generateRecommendations
+    description: Book recommendation engine - Generate personalized book recommendations
+    args:
+      - name: Authorization
+        description: User authentication token
+        required: true
+        position: header
+      - name: libraryId
+        description: Library branch identifier
+        required: true
+        position: header
+      - name: preferenceSettingsDTOList
+        description: User reading preferences and settings
+        type: array
+        items:
+          description: Reading preference settings
+          properties:
+            bookTitle:
+              description: Recommended book title
+              type: string
+            categoryId:
+              description: Book category identifier
+              type: string
+            categoryName:
+              description: Book category name
+              type: string
+            configurationList:
+              description: Book preference configurations
+              enum:
+                - format-Book Format
+                - language-Language Preference
+                - difficulty-Reading Level
+                - newReleases-Include New Releases
+                - availability-Availability Filter
+                - pageCount-Page Count Range
+                - location-Reading Location
+                - duration-Reading Duration
+                - digital-Digital Format
+                - audiobook-Audiobook Option
+                - series-Series Preference
+                - rating-Minimum Rating
+                - publisher-Publisher Filter
+                - year-Publication Year
+                - genre-Sub-genre Filter
+                - author-Preferred Authors
+              items:
+                description: Configuration option
+                properties:
+                  properties:
+                    displayName:
+                      description: Display name
+                      type: string
+                    displayValue:
+                      type: string
+                    formattedPrice:
+                      type: string
+                    key:
+                      description: Configuration key
+                      type: string
+                    unit:
+                      description: Value unit
+                      type: string
+                    value:
+                      description: Configuration value
+                      type: string
+                type: object
+              type: array
+            settingCode:
+              description: Preference setting code
+              type: string
+          required:
+            - categoryId
+            - settingCode
+          type: object
+        position: body
+      - name: readerProfileDTO
+        description: Reader profile information
+        type: object
+        properties:
+          favoriteGenres:
+            description: Preferred book categories
+            type: string
+          membershipLevel:
+            description: Library membership level
+            type: string
+          readerAge:
+            description: Reader age
+            type: integer
+          readerName:
+            description: Reader name
+            type: string
+          readingHistory:
+            description: Reading history summary
+            type: string
+        position: body
+      - name: regionCode
+        description: Geographic region code
+        required: true
+        position: header
+    requestTemplate:
+      url: https://api.library-hub.example.com/v1/library/api/books/recommendation
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: */*
+
+        - **message**: Response message (Type: string)
+        - **preferenceSettingsDTOList**: User reading preferences and settings (Type: array)
+          - **preferenceSettingsDTOList[].bookTitle**: Recommended book title (Type: string)
+          - **preferenceSettingsDTOList[].categoryId**: Book category identifier (Type: string)
+          - **preferenceSettingsDTOList[].categoryName**: Book category name (Type: string)
+          - **preferenceSettingsDTOList[].configurationList**: Book preference configurations (Type: array)
+            - **preferenceSettingsDTOList[].configurationList[].displayName**: Display name (Type: string)
+            - **preferenceSettingsDTOList[].configurationList[].displayValue**:  (Type: string)
+            - **preferenceSettingsDTOList[].configurationList[].formattedPrice**:  (Type: string)
+            - **preferenceSettingsDTOList[].configurationList[].key**: Configuration key (Type: string)
+            - **preferenceSettingsDTOList[].configurationList[].unit**: Value unit (Type: string)
+            - **preferenceSettingsDTOList[].configurationList[].value**: Configuration value (Type: string)
+          - **preferenceSettingsDTOList[].settingCode**: Preference setting code (Type: string)
+        - **readerProfileDTO**: Reader profile information (Type: object)
+          - **readerProfileDTO.favoriteGenres**: Preferred book categories (Type: string)
+          - **readerProfileDTO.membershipLevel**: Library membership level (Type: string)
+          - **readerProfileDTO.readerAge**: Reader age (Type: integer)
+          - **readerProfileDTO.readerName**: Reader name (Type: string)
+          - **readerProfileDTO.readingHistory**: Reading history summary (Type: string)
+        - **recommendationResult**: Book recommendation result (Type: object)
+          - **recommendationResult.analysisKey**: Analysis data key (returned on recommendation failure) (Type: string)
+          - **recommendationResult.readingPlan**: Personal reading plan (Type: object)
+            - **recommendationResult.readingPlan.currentWeek**: Current reading week (Type: string)
+            - **recommendationResult.readingPlan.goalCategories**: Reading goal categories (Type: array)
+              - **recommendationResult.readingPlan.goalCategories[].attributeValues**: Goal attribute values (Type: array)
+                - **recommendationResult.readingPlan.goalCategories[].attributeValues[]**: Items of type string
+              - **recommendationResult.readingPlan.goalCategories[].categoryName**: Category name (Type: string)
+              - **recommendationResult.readingPlan.goalCategories[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+              - **recommendationResult.readingPlan.goalCategories[].columnSpan**: Table column span (Type: integer)
+              - **recommendationResult.readingPlan.goalCategories[].goalAttribute**: Reading goal attribute code (Type: string)
+              - **recommendationResult.readingPlan.goalCategories[].rowSpan**: Table row span (Type: integer)
+              - **recommendationResult.readingPlan.goalCategories[].subCategoryList**: Sub-category collection (Type: array)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].attributeValues[]**: Items of type string
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].categoryName**: Category name (Type: string)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].attributeValues[]**: Items of type string
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                  - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues[]**: Items of type string
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                    - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues[]**: Items of type string
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                      - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues[]**: Items of type string
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                        - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues[]**: Items of type string
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                          - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].attributeValues**: Goal attribute values (Type: array)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryName**: Category name (Type: string)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].categoryPath**: Full category path (level1_level2_level3, joined by '_') (Type: string)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].columnSpan**: Table column span (Type: integer)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].goalAttribute**: Reading goal attribute code (Type: string)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].rowSpan**: Table row span (Type: integer)
+                            - **recommendationResult.readingPlan.goalCategories[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList[].subCategoryList**: Sub-category collection (Type: array)
+            - **recommendationResult.readingPlan.planDuration**: Reading plan duration (Type: string)
+            - **recommendationResult.readingPlan.weeklyGoals**: Weekly reading goals details (ordered by week) (Type: array)
+              - **recommendationResult.readingPlan.weeklyGoals[]**: Items of type object
+          - **recommendationResult.sessionId**: Recommendation session ID (Type: string)
+          - **recommendationResult.summaryText**: Recommendation summary (example: Jane Doe, Premium member, 28 years old, [Foundation Series] Format: Paperback|New releases: Yes|Genre: Science Fiction|Pages: 500+|Location: Home reading) (Type: string)
+          - **recommendationResult.totalBooks**: Total recommended books count (Type: string)
+          - **recommendationResult.totalCategories**: Total categories covered (Type: string)
+        - **status**: Status (200: Success, 400: Invalid params, 401: Book unavailable, 402: Access denied, 403: Account suspended) (Type: string)
+
+        ## Original Response
+
+    outputSchema:
+      description: OK
+      properties:
+        message:
+          description: Response message
+          type: string
+        preferenceSettingsDTOList:
+          description: User reading preferences and settings
+          items:
+            description: Reading preference settings
+            properties:
+              bookTitle:
+                description: Recommended book title
+                type: string
+              categoryId:
+                description: Book category identifier
+                type: string
+              categoryName:
+                description: Book category name
+                type: string
+              configurationList:
+                description: Book preference configurations
+                items:
+                  description: Configuration option
+                  properties:
+                    displayName:
+                      description: Display name
+                      type: string
+                    displayValue:
+                      type: string
+                    formattedPrice:
+                      type: string
+                    key:
+                      description: Configuration key
+                      type: string
+                    unit:
+                      description: Value unit
+                      type: string
+                    value:
+                      description: Configuration value
+                      type: string
+                  type: object
+                type: array
+              settingCode:
+                description: Preference setting code
+                type: string
+            required:
+              - categoryId
+              - settingCode
+            type: object
+          type: array
+        readerProfileDTO:
+          description: Reader profile information
+          properties:
+            favoriteGenres:
+              description: Preferred book categories
+              type: string
+            membershipLevel:
+              description: Library membership level
+              type: string
+            readerAge:
+              description: Reader age
+              type: integer
+            readerName:
+              description: Reader name
+              type: string
+            readingHistory:
+              description: Reading history summary
+              type: string
+          type: object
+        recommendationResult:
+          description: Book recommendation result
+          properties:
+            analysisKey:
+              description: Analysis data key (returned on recommendation failure)
+              type: string
+            readingPlan:
+              description: Personal reading plan
+              properties:
+                currentWeek:
+                  description: Current reading week
+                  type: string
+                goalCategories:
+                  description: Reading goal categories
+                  items:
+                    description: Reading goal category object
+                    properties:
+                      attributeValues:
+                        description: Goal attribute values
+                        items:
+                          description: Goal attribute values
+                          type: string
+                        type: array
+                      categoryName:
+                        description: Category name
+                        type: string
+                      categoryPath:
+                        description: Full category path (level1_level2_level3, joined by '_')
+                        type: string
+                      columnSpan:
+                        description: Table column span
+                        type: integer
+                      goalAttribute:
+                        description: Reading goal attribute code
+                        type: string
+                      rowSpan:
+                        description: Table row span
+                        type: integer
+                      subCategoryList:
+                        description: Sub-category collection
+                        items:
+                          description: Reading goal category object
+                          type: object
+                        type: array
+                    type: object
+                  type: array
+                planDuration:
+                  description: Reading plan duration
+                  type: string
+                weeklyGoals:
+                  description: Weekly reading goals details (ordered by week)
+                  items:
+                    description: Weekly reading goals details (ordered by week)
+                    type: object
+                  type: array
+              type: object
+            sessionId:
+              description: Recommendation session ID
+              type: string
+            summaryText:
+              description: 'Recommendation summary (example: Jane Doe, Premium member, 28 years old, [Foundation Series] Format: Paperback|New releases: Yes|Genre: Science Fiction|Pages: 500+|Location: Home reading)'
+              type: string
+            totalBooks:
+              description: Total recommended books count
+              type: string
+            totalCategories:
+              description: Total categories covered
+              type: string
+          type: object
+        status:
+          description: 'Status (200: Success, 400: Invalid params, 401: Book unavailable, 402: Access denied, 403: Account suspended)'
+          type: string
+      type: object
