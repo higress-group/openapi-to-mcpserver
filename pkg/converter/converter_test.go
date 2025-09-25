@@ -24,6 +24,12 @@ func TestEndToEndConversion(t *testing.T) {
 		templatePath   string
 	}{
 		{
+			name:           "With Ref Chain API",
+			inputFile:      "../../test/with-ref-chain.json",
+			expectedOutput: "../../test/expected-with-ref-chain.yaml",
+			serverName:     "with-ref-chain-api",
+		},
+		{
 			name:           "With Ref API",
 			inputFile:      "../../test/with-ref.json",
 			expectedOutput: "../../test/expected-with-ref-mcp.yaml",

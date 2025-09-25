@@ -1,0 +1,71 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+      "title": "Minimal Deep $ref Failure Case",
+      "version": "1.0.0"
+    },
+    "paths": {
+      "/deep": {
+        "post": {
+          "summary": "Deep $ref chain in nested property",
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "nested": {
+                      "$ref": "#/components/schemas/RefLevel1"
+                    },
+                    "active": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "OK"
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "schemas": {
+        "RefLevel1": {
+          "type": "object",
+          "properties": {
+            "deeper": {
+              "$ref": "#/components/schemas/RefLevel2"
+            }
+          }
+        },
+        "RefLevel2": {
+          "type": "object",
+          "properties": {
+            "deeper": {
+              "$ref": "#/components/schemas/RefLevel3"
+            }
+          }
+        },
+        "RefLevel3": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
