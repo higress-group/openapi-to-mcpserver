@@ -904,7 +904,10 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 			if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
 				nestedProps := c.convertNestedPropertiesWithVisited(propRef.Value, visited)
 				if nestedProps != nil {
-					propSchema["properties"] = nestedProps
+					// Extract the actual properties to avoid double wrapping
+					if props, ok := nestedProps["properties"]; ok {
+						propSchema["properties"] = props
+					}
 				}
 			}
 
@@ -923,7 +926,10 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 				if propRef.Value.Items.Value.Type == "object" && len(propRef.Value.Items.Value.Properties) > 0 {
 					nestedProps := c.convertNestedPropertiesWithVisited(propRef.Value.Items.Value, visited)
 					if nestedProps != nil {
-						itemsSchema["properties"] = nestedProps
+						// Extract the actual properties to avoid double wrapping
+						if props, ok := nestedProps["properties"]; ok {
+							itemsSchema["properties"] = props
+						}
 					}
 				}
 

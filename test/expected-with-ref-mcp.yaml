@@ -49,23 +49,22 @@ tools:
               items:
                 description: Configuration option
                 properties:
-                  properties:
-                    displayName:
-                      description: Display name
-                      type: string
-                    displayValue:
-                      type: string
-                    formattedPrice:
-                      type: string
-                    key:
-                      description: Configuration key
-                      type: string
-                    unit:
-                      description: Value unit
-                      type: string
-                    value:
-                      description: Configuration value
-                      type: string
+                  displayName:
+                    description: Display name
+                    type: string
+                  displayValue:
+                    type: string
+                  formattedPrice:
+                    type: string
+                  key:
+                    description: Configuration key
+                    type: string
+                  unit:
+                    description: Value unit
+                    type: string
+                  value:
+                    description: Configuration value
+                    type: string
                 type: object
               type: array
             settingCode:

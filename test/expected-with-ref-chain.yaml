@@ -1,0 +1,36 @@
+server:
+  name: with-ref-chain-api
+tools:
+  - name: post_deep
+    description: Deep $ref chain in nested property
+    args:
+      - name: active
+        description: ""
+        type: boolean
+        position: body
+      - name: nested
+        description: ""
+        type: object
+        properties:
+          deeper:
+            properties:
+              deeper:
+                properties:
+                  id:
+                    type: integer
+                  value:
+                    type: string
+                type: object
+            type: object
+        position: body
+      - name: title
+        description: ""
+        type: string
+        position: body
+    requestTemplate:
+      url: /deep
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate: {}
