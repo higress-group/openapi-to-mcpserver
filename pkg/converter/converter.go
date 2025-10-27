@@ -722,77 +722,37 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 			outputSchema["description"] = *successResponse.Description
 		}
 
-		// Handle the case where the schema is a reference (Type is empty)
-		// In this case, we need to process the schema as if it has the resolved type
-		if schema.Type == "" {
-			// If it's a reference, try to determine the type from the properties
-			if len(schema.Properties) > 0 {
-				// It's an object type
-				outputSchema["type"] = "object"
-				properties := c.convertProperties(schema.Properties, schema.Required)
-				outputSchema["properties"] = properties
-
-				// Add required fields if any
-				if len(schema.Required) > 0 {
-					outputSchema["required"] = schema.Required
-				}
-			} else if schema.Items != nil && schema.Items.Value != nil {
-				// It's an array type
-				outputSchema["type"] = "array"
-				itemsSchema := make(map[string]any)
-				itemsSchema["type"] = schema.Items.Value.Type
-				if schema.Items.Value.Description != "" {
-					itemsSchema["description"] = schema.Items.Value.Description
-				}
-
-				// Recursively handle array items if they are objects
-				if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
-					nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
-					itemsSchema["properties"] = nestedProps
-					if len(schema.Items.Value.Required) > 0 {
-						itemsSchema["required"] = schema.Items.Value.Required
-					}
-				}
-
-				outputSchema["items"] = itemsSchema
-			} else {
-				// Default to object if we can't determine the type
-				outputSchema["type"] = "object"
+		// Process schema based on its type or inferred type from properties/items
+		switch {
+		case schema.Type == "":
+			fallthrough
+		case schema.Type == "object" && len(schema.Properties) > 0:
+			outputSchema["type"] = "object"
+			properties := c.convertProperties(schema.Properties, schema.Required)
+			outputSchema["properties"] = properties
+			if len(schema.Required) > 0 {
+				outputSchema["required"] = schema.Required
 			}
-		} else {
-			// Set basic type information
+		case (schema.Type == "array" || (schema.Type == "" && schema.Items != nil)) && schema.Items != nil && schema.Items.Value != nil:
+			outputSchema["type"] = "array"
+			itemsSchema := make(map[string]any)
+			itemsSchema["type"] = schema.Items.Value.Type
+			if schema.Items.Value.Description != "" {
+				itemsSchema["description"] = schema.Items.Value.Description
+			}
+
+			// Recursively handle array items if they are objects
+			if schema.Items.Value.Type == "object" || (schema.Items.Value.Type == "" && len(schema.Items.Value.Properties) > 0) {
+				nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
+				itemsSchema["properties"] = nestedProps
+				if len(schema.Items.Value.Required) > 0 {
+					itemsSchema["required"] = schema.Items.Value.Required
+				}
+			}
+
+			outputSchema["items"] = itemsSchema
+		default:
 			outputSchema["type"] = schema.Type
-
-			// Handle array type recursively
-			if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
-				itemsSchema := make(map[string]any)
-				itemsSchema["type"] = schema.Items.Value.Type
-				if schema.Items.Value.Description != "" {
-					itemsSchema["description"] = schema.Items.Value.Description
-				}
-
-				// Recursively handle array items if they are objects
-				if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
-					nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
-					itemsSchema["properties"] = nestedProps
-					if len(schema.Items.Value.Required) > 0 {
-						itemsSchema["required"] = schema.Items.Value.Required
-					}
-				}
-
-				outputSchema["items"] = itemsSchema
-			}
-
-			// Handle object type with properties
-			if schema.Type == "object" && len(schema.Properties) > 0 {
-				properties := c.convertProperties(schema.Properties, schema.Required)
-				outputSchema["properties"] = properties
-
-				// Add required fields if any
-				if len(schema.Required) > 0 {
-					outputSchema["required"] = schema.Required
-				}
-			}
 		}
 
 		return outputSchema, nil
