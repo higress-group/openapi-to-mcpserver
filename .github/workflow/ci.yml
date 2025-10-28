@@ -4,13 +4,14 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
+      - 'fix/**'
+      - 'feature/**'
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '**.md'
+      - 'fix/**'
+      - 'feature/**'
+  workflow_dispatch:
 env:
   ENABLE_TEST_CI: true
 
