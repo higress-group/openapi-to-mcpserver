@@ -15,8 +15,6 @@ jobs:
   test:
     name: Go Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
       - name: Checkout
