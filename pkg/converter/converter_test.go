@@ -96,6 +96,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-output-schema-test-mcp.yaml",
 			serverName:     "output-schema-api",
 		},
+		{
+			name:           "Handle Subschemas",
+			inputFile:      "../../test/subschemas.json",
+			expectedOutput: "../../test/expected-subschemas-mcp.yaml",
+			serverName:     "openapi-server",
+		},
 	}
 
 	for _, tc := range testCases {
