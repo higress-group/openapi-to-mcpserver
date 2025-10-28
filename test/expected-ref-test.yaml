@@ -1,0 +1,133 @@
+server:
+  name: test-api
+  securitySchemes:
+    - id: ApiKeyAuth
+      type: apiKey
+      in: header
+      name: token
+tools:
+  - name: example-controller-getExampleData
+    description: 示例系统-指标-明细数据 - 示例系统-指标-明细数据
+    args:
+      - name: endDate
+        description: 结束时间
+        type: string
+        position: body
+      - name: itemId
+        description: 数据项ID
+        type: string
+        position: body
+      - name: itemIds
+        description: 数据项ID列表
+        type: array
+        items:
+          description: ""
+          type: string
+        position: body
+      - name: startDate
+        description: 开始时间
+        type: string
+        position: body
+    requestTemplate:
+      url: http://localhost:8000/v2/api/example/api/example
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+
+        ## Original Response
+
+    outputSchema:
+      description: OK
+      properties:
+        code:
+          description: 状态码
+          type: integer
+        data:
+          description: 具体的内容
+          items:
+            description: 每个item是一个数据项的结果
+            properties:
+              categoryId:
+                description: 分类ID
+                type: string
+              categoryName:
+                description: 分类名称
+                type: string
+              children:
+                description: 子项数据，暂未使用
+                items:
+                  type: object
+                type: array
+              group:
+                description: 分组数据
+                items:
+                  properties:
+                    itemId:
+                      description: 数据项ID
+                      type: string
+                    itemName:
+                      description: 数据项名称
+                      type: string
+                    metricA:
+                      description: 指标A
+                      type: double
+                    metricB:
+                      description: 指标B
+                      type: double
+                    metricC:
+                      description: 指标C
+                      type: double
+                    metricD:
+                      description: 指标D
+                      type: double
+                  type: object
+                type: array
+              itemId:
+                description: 数据项ID
+                type: string
+              itemName:
+                description: 数据项名称
+                type: string
+              metricA:
+                description: 指标A
+                type: double
+              metricB:
+                description: 指标B
+                type: double
+              metricC:
+                description: 指标C
+                type: double
+              metricD:
+                description: 指标D
+                type: double
+              metricE:
+                description: 指标E
+                type: double
+              metricF:
+                description: 指标F
+                type: double
+              seq:
+                description: 时序数据，暂未使用
+                items:
+                  type: object
+                type: array
+            type: object
+          type: array
+        msg:
+          description: 提示信息
+          type: string
+      type: object

@@ -13,10 +13,9 @@ env:
 
 jobs:
   test:
+    if: (github.repository == 'higress-group/openapi-to-mcpserver')
     name: Go Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
 
     steps:
       - name: Checkout

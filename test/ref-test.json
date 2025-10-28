@@ -1,0 +1,201 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000/v2/api/example",
+      "description": "示例系统生产环境"
+    }
+  ],
+  "paths": {
+    "/api/example": {
+      "post": {
+        "tags": ["example-controller", "WEB", "REST"],
+        "summary": "示例系统-指标-明细数据",
+        "description": "示例系统-指标-明细数据",
+        "operationId": "example-controller-getExampleData",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExampleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExampleResponse"
+                }
+              }
+            }
+          }
+        },
+        "x-method-class": "com.example.system.api.ExampleController"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ExampleResponse": {
+        "properties": {
+          "code": {
+            "type": "integer",
+            "description": "状态码",
+            "format": "int32"
+          },
+          "msg": {
+            "type": "string",
+            "description": "提示信息"
+          },
+          "data": {
+            "type": "array",
+            "description": "具体的内容",
+            "items": {
+              "type": "object",
+              "description": "每个item是一个数据项的结果",
+              "properties": {
+                "itemId": {
+                  "type": "string",
+                  "description": "数据项ID"
+                },
+                "itemName": {
+                  "type": "string",
+                  "description": "数据项名称"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "description": "分类ID"
+                },
+                "categoryName": {
+                  "type": "string",
+                  "description": "分类名称"
+                },
+                "seq": {
+                  "type": "array",
+                  "description": "时序数据，暂未使用",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "children": {
+                  "type": "array",
+                  "description": "子项数据，暂未使用",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "group": {
+                  "type": "array",
+                  "description": "分组数据",
+                  "items": {
+                    "$ref": "#/components/schemas/ExampleGroupItem"
+                  }
+                },
+                "metricA": {
+                  "type": "double",
+                  "description": "指标A"
+                },
+                "metricB": {
+                  "type": "double",
+                  "description": "指标B"
+                },
+                "metricC": {
+                  "type": "double",
+                  "description": "指标C"
+                },
+                "metricD": {
+                  "type": "double",
+                  "description": "指标D"
+                },
+                "metricE": {
+                  "type": "double",
+                  "description": "指标E"
+                },
+                "metricF": {
+                  "type": "double",
+                  "description": "指标F"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ExampleGroupItem": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "description": "数据项ID"
+          },
+          "itemName": {
+            "type": "string",
+            "description": "数据项名称"
+          },
+          "metricA": {
+            "type": "double",
+            "description": "指标A"
+          },
+          "metricB": {
+            "type": "double",
+            "description": "指标B"
+          },
+          "metricC": {
+            "type": "double",
+            "description": "指标C"
+          },
+          "metricD": {
+            "type": "double",
+            "description": "指标D"
+          }
+        }
+      },
+      "ExampleRequest": {
+        "type": "object",
+        "properties": {
+          "itemIds": {
+            "type": "array",
+            "description": "数据项ID列表",
+            "items": {
+              "type": "string"
+            }
+          },
+          "itemId": {
+            "type": "string",
+            "description": "数据项ID"
+          },
+          "startDate": {
+            "type": "string",
+            "description": "开始时间",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "结束时间",
+            "format": "date-time"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "token"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
+}

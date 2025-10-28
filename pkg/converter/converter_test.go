@@ -96,6 +96,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-output-schema-test-mcp.yaml",
 			serverName:     "output-schema-api",
 		},
+		{
+			name:           "Simple Ref Test",
+			inputFile:      "../../test/ref-test.json",
+			expectedOutput: "../../test/expected-ref-test.yaml",
+			serverName:     "test-api",
+		},
 	}
 
 	for _, tc := range testCases {
