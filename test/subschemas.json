@@ -1,0 +1,99 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Composition Test API",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/user": {
+      "post": {
+        "summary": "Test allOf, anyOf, and oneOf in request body",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompositionTest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CompositionTest": {
+        "type": "object",
+        "properties": {
+          "allOfUser": {
+            "description": "Combines both BaseUser and ExtraInfo via allOf",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/BaseUser"
+              },
+              {
+                "$ref": "#/components/schemas/ExtraInfo"
+              }
+            ]
+          },
+          "anyOfUser": {
+            "description": "Valid if matches any of BaseUser or ExtraInfo",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BaseUser"
+              },
+              {
+                "$ref": "#/components/schemas/ExtraInfo"
+              }
+            ]
+          },
+          "oneOfUser": {
+            "description": "Valid if matches exactly one of BaseUser or ExtraInfo",
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/BaseUser"
+              },
+              {
+                "$ref": "#/components/schemas/ExtraInfo"
+              }
+            ]
+          }
+        }
+      },
+      "BaseUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ExtraInfo": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "age": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

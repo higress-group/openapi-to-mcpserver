@@ -422,10 +422,20 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 							arg.Properties = nestedProps["properties"].(map[string]any)
 						}
 					}
-					// Handle allOf
-					if propRef.Value.Type == "" && len(propRef.Value.AllOf) == 1 {
-						arg.Type = "object"
-						arg.Properties = c.allOfHandle(propRef.Value.AllOf[0])
+					if propRef.Value.Type == "" {
+						// Handle allOf, anyOf, oneOf
+						if len(propRef.Value.AllOf) == 1 {
+							arg.Type = "object"
+							arg.Properties = c.allOfHandle(propRef.Value.AllOf[0])
+						} else if c.hasCommonType(propRef.Value.AllOf) {
+							arg.Type = propRef.Value.AllOf[0].Value.Type
+						}
+						if c.hasCommonType(propRef.Value.AnyOf) {
+							arg.Type = propRef.Value.AnyOf[0].Value.Type
+						}
+						if c.hasCommonType(propRef.Value.OneOf) {
+							arg.Type = propRef.Value.OneOf[0].Value.Type
+						}
 					}
 
 					args = append(args, arg)
@@ -457,6 +467,19 @@ func (c *Converter) allOfHandle(schemaRef *openapi3.SchemaRef) map[string]interf
 	}
 
 	return properties
+}
+
+func (c *Converter) hasCommonType(schemaRefs []*openapi3.SchemaRef) bool {
+	if len(schemaRefs) == 0 {
+		return false
+	}
+	first := schemaRefs[0].Value.Type
+	for _, schemaRef := range schemaRefs {
+		if first != schemaRef.Value.Type {
+			return false
+		}
+	}
+	return true
 }
 
 // createRequestTemplate creates an MCP request template from an OpenAPI operation

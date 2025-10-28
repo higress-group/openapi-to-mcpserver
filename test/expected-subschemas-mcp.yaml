@@ -1,0 +1,25 @@
+server:
+  name: openapi-server
+tools:
+  - name: post_user
+    description: Test allOf, anyOf, and oneOf in request body
+    args:
+      - name: allOfUser
+        description: Combines both BaseUser and ExtraInfo via allOf
+        type: object
+        position: body
+      - name: anyOfUser
+        description: Valid if matches any of BaseUser or ExtraInfo
+        type: object
+        position: body
+      - name: oneOfUser
+        description: Valid if matches exactly one of BaseUser or ExtraInfo
+        type: object
+        position: body
+    requestTemplate:
+      url: /user
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+    responseTemplate: {}
