@@ -2,13 +2,20 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
   pull_request:
-    branches: [main]
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+env:
+  ENABLE_TEST_CI: true
 
 jobs:
   test:
-    if: (github.repository == 'higress-group/openapi-to-mcpserver')
     name: Go Test
     runs-on: ubuntu-latest
     strategy:
