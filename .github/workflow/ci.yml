@@ -4,13 +4,13 @@ on:
   push:
     branches:
       - main
-      - 'fix/**'
-      - 'feature/**'
+      - "fix/**"
+      - "feature/**"
   pull_request:
     branches:
       - main
-      - 'fix/**'
-      - 'feature/**'
+      - "fix/**"
+      - "feature/**"
   workflow_dispatch:
 env:
   ENABLE_TEST_CI: true
