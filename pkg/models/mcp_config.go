@@ -21,10 +21,16 @@ type ServerToolConfig struct {
 
 // ServerConfig represents the MCP server configuration
 type ServerConfig struct {
-	Name            string           `yaml:"name"`
-	Config          map[string]any   `yaml:"config,omitempty"`
-	AllowTools      []string         `yaml:"allowTools,omitempty"`
-	SecuritySchemes []SecurityScheme `yaml:"securitySchemes,omitempty"`
+	Name                      string                   `yaml:"name"`
+	Config                    map[string]any           `yaml:"config,omitempty"`
+	Type                      string                   `yaml:"type,omitempty"`      // e.g.,"mcp-proxy"
+	Transport                 string                   `yaml:"transport,omitempty"` // e.g.,"http", "sse"
+	McpServerURL              string                   `yaml:"mcpServerURL,omitempty"`
+	Timeout                   *int                     `yaml:"timeout,omitempty"`
+	DefaultUpstreamSecurity   *ToolSecurityRequirement `yaml:"defaultUpstreamSecurity,omitempty"`
+	DefaultDownstreamSecurity *ToolSecurityRequirement `yaml:"defaultDownstreamSecurity,omitempty"`
+	AllowTools                []string                 `yaml:"allowTools,omitempty"`
+	SecuritySchemes           []SecurityScheme         `yaml:"securitySchemes,omitempty"`
 }
 
 // SecurityScheme defines a security scheme that can be used by the tools.
