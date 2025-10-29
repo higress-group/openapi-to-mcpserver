@@ -27,7 +27,8 @@ type ServerConfig struct {
 	Transport               string                   `yaml:"transport,omitempty"` // e.g.,"http", "sse"
 	McpServerURL            string                   `yaml:"mcpServerURL,omitempty"`
 	Timeout                 *int                     `yaml:"timeout,omitempty"`
-	DefaultUpstreamSecurity *DefaultUpstreamSecurity `yaml:"defaultUpstreamSecurity,omitempty"`
+	DefaultUpstreamSecurity *ToolSecurityRequirement `yaml:"defaultUpstreamSecurity,omitempty"`
+	DefaultDownstreamSecurity *ToolSecurityRequirement `yaml:"defaultDownstreamSecurity,omitempty"`	
 	AllowTools              []string                 `yaml:"allowTools,omitempty"`
 	SecuritySchemes         []SecurityScheme         `yaml:"securitySchemes,omitempty"`
 }
