@@ -33,10 +33,6 @@ type ServerConfig struct {
 	SecuritySchemes         []SecurityScheme         `yaml:"securitySchemes,omitempty"`
 }
 
-type DefaultUpstreamSecurity struct {
-	ID string `json:"id"`
-}
-
 // SecurityScheme defines a security scheme that can be used by the tools.
 type SecurityScheme struct {
 	ID                string `yaml:"id"`
