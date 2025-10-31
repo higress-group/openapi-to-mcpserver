@@ -70,8 +70,8 @@ type Arg struct {
 
 // RequestTemplate represents the MCP request template
 type RequestTemplate struct {
-	URL            string                   `yaml:"url"`
-	Method         string                   `yaml:"method"`
+	URL            string                   `yaml:"url,omitempty"`
+	Method         string                   `yaml:"method,omitempty"`
 	Headers        []Header                 `yaml:"headers,omitempty"`
 	Body           string                   `yaml:"body,omitempty"`
 	ArgsToJsonBody bool                     `yaml:"argsToJsonBody,omitempty"`
