@@ -714,6 +714,14 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 
 		schema := mediaType.Schema.Value
 
+		// Skip outputSchema generation if the root type is array
+		// This is due to incompatibility with mainstream MCP client SDKs like mcp-inspector
+		// which expect outputSchema to be an object type, not array
+		// See: https://github.com/modelcontextprotocol/inspector/issues/872
+		if schema.Type == "array" || (schema.Type == "" && schema.Items != nil && len(schema.Properties) == 0) {
+			return nil, nil
+		}
+
 		// Convert OpenAPI schema to MCP output schema
 		outputSchema := make(map[string]any)
 
@@ -734,6 +742,8 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 				outputSchema["required"] = schema.Required
 			}
 		case (schema.Type == "array" || (schema.Type == "" && schema.Items != nil)) && schema.Items != nil && schema.Items.Value != nil:
+			// This case should not be reached due to the early return above
+			// but keeping it for completeness
 			outputSchema["type"] = "array"
 			itemsSchema := make(map[string]any)
 			itemsSchema["type"] = schema.Items.Value.Type

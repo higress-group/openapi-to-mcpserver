@@ -102,6 +102,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-ref-test.yaml",
 			serverName:     "test-api",
 		},
+		{
+			name:           "Array Root Response",
+			inputFile:      "../../test/array-root-response.json",
+			expectedOutput: "../../test/expected-array-root-response-mcp.yaml",
+			serverName:     "array-root-api",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -337,4 +343,46 @@ func TestConvertPropertiesRecursive(t *testing.T) {
 		assert.Equal(t, "string", bioProp["type"])
 		assert.Equal(t, "User biography", bioProp["description"])
 	}
+}
+
+func TestCreateOutputSchemaArrayRoot(t *testing.T) {
+	// Create a new parser
+	p := parser.NewParser()
+
+	// Parse the array root response test file
+	err := p.ParseFile("../../test/array-root-response.json")
+	assert.NoError(t, err)
+
+	// Create a converter
+	c := NewConverter(p, models.ConvertOptions{
+		ServerName: "test-server",
+	})
+
+	// Get the document and operations
+	doc := p.GetDocument()
+
+	// Test array root response - should return nil (no outputSchema)
+	usersOperation := doc.Paths.Find("/users").Get
+	outputSchema, err := c.createOutputSchema(usersOperation)
+	assert.NoError(t, err)
+	assert.Nil(t, outputSchema, "Array root responses should not generate outputSchema for MCP compatibility")
+
+	// Test array of strings root response - should return nil (no outputSchema)
+	tagsOperation := doc.Paths.Find("/tags").Get
+	outputSchema, err = c.createOutputSchema(tagsOperation)
+	assert.NoError(t, err)
+	assert.Nil(t, outputSchema, "Array of strings root responses should not generate outputSchema for MCP compatibility")
+
+	// Test object root response - should generate outputSchema
+	userOperation := doc.Paths.Find("/user/{id}").Get
+	outputSchema, err = c.createOutputSchema(userOperation)
+	assert.NoError(t, err)
+	assert.NotNil(t, outputSchema, "Object root responses should generate outputSchema")
+	assert.Equal(t, "object", outputSchema["type"])
+
+	// Verify object schema has expected structure
+	properties, ok := outputSchema["properties"].(map[string]any)
+	assert.True(t, ok)
+	assert.Contains(t, properties, "id")
+	assert.Contains(t, properties, "name")
 }

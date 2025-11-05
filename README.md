@@ -494,6 +494,10 @@ The tool maintains full backward compatibility:
 - New features are automatically enabled when output schemas are generated
 - Existing functionality remains unchanged
 
+### Known Limitations
+
+**Array Root Responses**: The tool does not generate `outputSchema` for endpoints that return arrays at the root level (e.g., `GET /users` returning `[{...}]` instead of `{"users": [{...}]}`). This is due to a compatibility issue with mainstream MCP client SDKs like [mcp-inspector](https://github.com/modelcontextprotocol/inspector/issues/872), which expect `outputSchema` to be an object type, not an array. For such endpoints, the tool will still generate the tool definition but without the `outputSchema` field. The response will still be processed correctly, but without structured content support.
+
 ### Using with Higress
 
 When using the generated configuration with Higress:

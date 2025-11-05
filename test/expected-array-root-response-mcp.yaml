@@ -1,0 +1,94 @@
+server:
+  name: array-root-api
+tools:
+  - name: get_tags
+    description: Get tags list - Retrieve a list of tags (returns array of strings)
+    args: []
+    requestTemplate:
+      url: https://api.example.com/v1/tags
+      method: GET
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **items**: Array of items (Type: array)
+
+        ## Original Response
+
+  - name: get_user_id
+    description: Get user by ID - Retrieve a single user (returns object)
+    args:
+      - name: id
+        description: User ID
+        type: integer
+        required: true
+        position: path
+    requestTemplate:
+      url: https://api.example.com/v1/user/{id}
+      method: GET
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **id**: User ID (Type: integer)
+        - **name**: User name (Type: string)
+
+        ## Original Response
+
+    outputSchema:
+      description: Successful response with object
+      properties:
+        id:
+          description: User ID
+          type: integer
+        name:
+          description: User name
+          type: string
+      required:
+        - id
+        - name
+      type: object
+  - name: get_users
+    description: Get users list - Retrieve a list of users (returns array directly)
+    args: []
+    requestTemplate:
+      url: https://api.example.com/v1/users
+      method: GET
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **items**: Array of items (Type: array)
+          - **items.email**: User email (Type: string)
+          - **items.id**: User ID (Type: integer)
+          - **items.name**: User name (Type: string)
+
+        ## Original Response
+
