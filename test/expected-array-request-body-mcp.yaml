@@ -1,0 +1,76 @@
+server:
+  name: array-body-api
+tools:
+  - name: createUsersBatch
+    description: Create multiple users in batch
+    args:
+      - name: items
+        description: Array of users to create
+        type: array
+        required: true
+        items:
+          properties:
+            age:
+              description: User's age
+              type: integer
+            email:
+              description: User's email address
+              type: string
+            name:
+              description: User's name
+              type: string
+          required:
+            - name
+            - email
+          type: object
+        position: body
+    requestTemplate:
+      url: http://api.example.com/v1/users/batch
+      method: POST
+      headers:
+        - key: Content-Type
+          value: application/json
+      body: '{{.args.items}}'
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **created**: Number of users created (Type: integer)
+
+        ## Original Response
+
+    outputSchema:
+      description: Users created successfully
+      properties:
+        created:
+          description: Number of users created
+          type: integer
+      type: object
+  - name: updateItems
+    description: Update multiple items
+    args:
+      - name: items
+        description: Array of item IDs to update
+        type: array
+        required: true
+        items:
+          description: Item ID
+          type: string
+        position: body
+    requestTemplate:
+      url: http://api.example.com/v1/items
+      method: PUT
+      headers:
+        - key: Content-Type
+          value: application/json
+      body: '{{.args.items}}'
+    responseTemplate: {}

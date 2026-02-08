@@ -1,0 +1,94 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Array Request Body API",
+    "version": "1.0.0",
+    "description": "API with array type request body"
+  },
+  "servers": [
+    {
+      "url": "http://api.example.com/v1"
+    }
+  ],
+  "paths": {
+    "/users/batch": {
+      "post": {
+        "summary": "Create multiple users in batch",
+        "operationId": "createUsersBatch",
+        "requestBody": {
+          "description": "Array of users to create",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["name", "email"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "User's name"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "User's email address"
+                    },
+                    "age": {
+                      "type": "integer",
+                      "description": "User's age"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Users created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "created": {
+                      "type": "integer",
+                      "description": "Number of users created"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/items": {
+      "put": {
+        "summary": "Update multiple items",
+        "operationId": "updateItems",
+        "requestBody": {
+          "description": "Array of item IDs to update",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "Item ID"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Items updated successfully"
+          }
+        }
+      }
+    }
+  }
+}
