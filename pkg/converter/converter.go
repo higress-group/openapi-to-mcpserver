@@ -373,8 +373,38 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 		if strings.Contains(contentType, "application/json") ||
 			strings.Contains(contentType, "application/x-www-form-urlencoded") {
 
-			// For object type, convert each property to an argument
-			if schema.Type == "object" && len(schema.Properties) > 0 {
+			// For array type, create a single argument to hold the entire array
+			if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
+				arg := models.Arg{
+					Name:        "items",
+					Description: requestBody.Description,
+					Type:        "array",
+					Required:    requestBody.Required,
+					Position:    "body",
+				}
+
+				// Set items schema
+				arg.Items = map[string]any{
+					"type": schema.Items.Value.Type,
+				}
+				if schema.Items.Value.Description != "" {
+					arg.Items["description"] = schema.Items.Value.Description
+				}
+
+				// Recursively handle array items if they are objects
+				if schema.Items.Value.Type == "object" && len(schema.Items.Value.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(schema.Items.Value)
+					if nestedProps != nil {
+						arg.Items["properties"] = nestedProps["properties"]
+						if required, ok := nestedProps["required"]; ok {
+							arg.Items["required"] = required
+						}
+					}
+				}
+
+				args = append(args, arg)
+			} else if schema.Type == "object" && len(schema.Properties) > 0 {
+				// For object type, convert each property to an argument
 				for propName, propRef := range schema.Properties {
 					if propRef.Value == nil {
 						continue
@@ -499,12 +529,22 @@ func (c *Converter) createRequestTemplate(path, method string, operation *openap
 
 	// Add Content-Type header based on request body content type
 	if operation.RequestBody != nil && operation.RequestBody.Value != nil {
-		for contentType := range operation.RequestBody.Value.Content {
+		for contentType, mediaType := range operation.RequestBody.Value.Content {
 			// Add the Content-Type header
 			template.Headers = append(template.Headers, models.Header{
 				Key:   "Content-Type",
 				Value: contentType,
 			})
+
+			// Check if request body is array type - if so, set body template to reference the items arg
+			if mediaType.Schema != nil && mediaType.Schema.Value != nil {
+				schema := mediaType.Schema.Value
+				if schema.Type == "array" && schema.Items != nil && schema.Items.Value != nil {
+					// For array type request body, set body template to reference the items argument
+					template.Body = "{{.args.items}}"
+				}
+			}
+
 			break // Just use the first content type
 		}
 	}

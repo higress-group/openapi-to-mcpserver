@@ -108,6 +108,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-array-root-response-mcp.yaml",
 			serverName:     "array-root-api",
 		},
+		{
+			name:           "Array Request Body",
+			inputFile:      "../../test/array-request-body.json",
+			expectedOutput: "../../test/expected-array-request-body-mcp.yaml",
+			serverName:     "array-body-api",
+		},
 	}
 
 	for _, tc := range testCases {
