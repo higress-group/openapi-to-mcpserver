@@ -11,8 +11,65 @@ import (
 	"github.com/higress-group/openapi-to-mcpserver/pkg/models"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/parser"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
+
+func TestConvertOpenAPI31NullableTypeArray(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Nullable field API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/users": {
+				"post": {
+					"operationId": "createUser",
+					"requestBody": {
+						"required": true,
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": ["nickname"],
+										"properties": {
+											"nickname": {
+												"type": ["string", "null"],
+												"description": "Required nickname (nullable string)"
+											}
+										}
+								}
+							}
+						}
+					},
+					"responses": {
+						"200": {
+							"description": "ok"
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "nullable-api"})
+	config, err := c.Convert()
+	require.NoError(t, err)
+	assert.Len(t, config.Tools, 1)
+	assert.Len(t, config.Tools[0].Args, 1)
+
+	arg := config.Tools[0].Args[0]
+	assert.Equal(t, "nickname", arg.Name)
+	assert.Equal(t, "string", arg.Type)
+	assert.True(t, arg.Required)
+}
 
 func TestEndToEndConversion(t *testing.T) {
 	// Test cases
@@ -301,7 +358,7 @@ func TestConvertPropertiesRecursive(t *testing.T) {
 	// Get the response schema
 	var successResponse *openapi3.Response
 	if userOperation.Responses != nil {
-		for code, responseRef := range userOperation.Responses {
+		for code, responseRef := range userOperation.Responses.Map() {
 			if strings.HasPrefix(code, "2") && responseRef != nil && responseRef.Value != nil {
 				successResponse = responseRef.Value
 				break
@@ -324,7 +381,7 @@ func TestConvertPropertiesRecursive(t *testing.T) {
 	assert.NotNil(t, schema)
 
 	// Test the convertProperties function directly
-	if schema.Type == "object" && len(schema.Properties) > 0 {
+	if schemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0 {
 		properties := c.convertProperties(schema.Properties, schema.Required)
 
 		// Verify top-level properties
