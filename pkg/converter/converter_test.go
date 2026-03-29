@@ -35,12 +35,12 @@ func TestConvertOpenAPI31NullableTypeArray(t *testing.T) {
 								"schema": {
 									"type": "object",
 									"required": ["nickname"],
-									"properties": {
-										"nickname": {
-											"type": ["string", "null"],
-											"description": "Optional nickname"
+										"properties": {
+											"nickname": {
+												"type": ["string", "null"],
+												"description": "Required nickname (nullable string)"
+											}
 										}
-									}
 								}
 							}
 						}
