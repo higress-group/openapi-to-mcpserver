@@ -71,6 +71,78 @@ func TestConvertOpenAPI31NullableTypeArray(t *testing.T) {
 	assert.True(t, arg.Required)
 }
 
+func TestConvertDeduplicatesArgsWithSameNameAcrossPathAndBody(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Duplicate parameter API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/api/{org_id}/organizations/assume_service_account": {
+				"post": {
+					"operationId": "AssumeServiceAccount",
+					"parameters": [
+						{
+							"name": "org_id",
+							"in": "path",
+							"required": true,
+							"schema": {
+								"type": "string"
+							}
+						}
+					],
+					"requestBody": {
+						"required": true,
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": ["service_account", "org_id"],
+									"properties": {
+										"org_id": {
+											"type": "string",
+											"description": "Body org identifier"
+										},
+										"service_account": {
+											"type": "string"
+										}
+									}
+								}
+							}
+						}
+					},
+					"responses": {
+						"200": {
+							"description": "ok"
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "duplicate-args-api"})
+	config, err := c.Convert()
+	require.NoError(t, err)
+	require.Len(t, config.Tools, 1)
+	require.Len(t, config.Tools[0].Args, 2)
+
+	argNames := []string{config.Tools[0].Args[0].Name, config.Tools[0].Args[1].Name}
+	assert.Equal(t, []string{"org_id", "service_account"}, argNames)
+
+	orgIDArg := config.Tools[0].Args[0]
+	assert.Equal(t, "path", orgIDArg.Position)
+	assert.True(t, orgIDArg.Required)
+	assert.Equal(t, "string", orgIDArg.Type)
+}
+
 func TestEndToEndConversion(t *testing.T) {
 	// Test cases
 	testCases := []struct {
@@ -448,4 +520,87 @@ func TestCreateOutputSchemaArrayRoot(t *testing.T) {
 	assert.True(t, ok)
 	assert.Contains(t, properties, "id")
 	assert.Contains(t, properties, "name")
+}
+
+func TestCreateOutputSchemaScalarRootReturnsNil(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.0.3",
+		"info": {"title": "scalar-root", "version": "1.0.0"},
+		"paths": {
+			"/health": {
+				"get": {
+					"operationId": "getHealth",
+					"responses": {
+						"200": {
+							"description": "ok",
+							"content": {
+								"application/json": {
+									"schema": {"type": "string"}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "scalar-root"})
+	outputSchema, err := c.createOutputSchema(p.GetDocument().Paths.Find("/health").Get)
+	require.NoError(t, err)
+	assert.Nil(t, outputSchema, "Scalar root responses should not generate outputSchema for MCP compatibility")
+}
+
+func TestConvertPropertiesInfersMissingTypes(t *testing.T) {
+	t.Parallel()
+
+	c := NewConverter(nil, models.ConvertOptions{})
+	properties := map[string]*openapi3.SchemaRef{
+		"metadata": {
+			Value: &openapi3.Schema{
+				Properties: openapi3.Schemas{
+					"name": {
+						Value: &openapi3.Schema{
+							Type: &openapi3.Types{"string"},
+						},
+					},
+				},
+			},
+		},
+		"items": {
+			Value: &openapi3.Schema{
+				Items: &openapi3.SchemaRef{
+					Value: &openapi3.Schema{
+						Properties: openapi3.Schemas{
+							"id": {
+								Value: &openapi3.Schema{
+									Type: &openapi3.Types{"integer"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	converted := c.convertProperties(properties, nil)
+
+	metadata, ok := converted["metadata"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", metadata["type"])
+
+	items, ok := converted["items"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "array", items["type"])
+
+	itemSchema, ok := items["items"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", itemSchema["type"])
 }

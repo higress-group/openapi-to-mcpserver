@@ -46,3 +46,64 @@ func TestParseOpenAPI31TypeArray(t *testing.T) {
 		t.Fatalf("Parse() returned error for OpenAPI 3.1 type array: %v", err)
 	}
 }
+
+func TestParseOpenAPI31TupleWithBooleanItems(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Tuple schema API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/search": {
+				"get": {
+					"operationId": "search",
+					"responses": {
+						"200": {
+							"description": "ok",
+							"content": {
+								"application/json": {
+									"schema": {
+										"$ref": "#/components/schemas/SearchResponse"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"components": {
+			"schemas": {
+				"SearchResponse": {
+					"type": "object",
+					"properties": {
+						"order_by_metadata": {
+							"type": "array",
+							"items": {
+								"type": "array",
+								"items": false,
+								"prefixItems": [
+									{
+										"type": "string"
+									},
+									{
+										"type": "string",
+										"enum": ["desc", "asc"]
+									}
+								]
+							}
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	parser := NewParser()
+	if err := parser.Parse(spec); err != nil {
+		t.Fatalf("Parse() returned error for OpenAPI 3.1 boolean items schema: %v", err)
+	}
+}

@@ -25,6 +25,9 @@ tools:
       security:
         id: ApiKeyHeaderAuth
     responseTemplate: {}
+    security:
+      id: ApiKeyHeaderAuth
+      passthrough: true
   - name: getApiKeyQueryResource
     description: Resource requiring API Key in Query
     args: []
@@ -34,6 +37,9 @@ tools:
       security:
         id: ApiKeyQueryAuth
     responseTemplate: {}
+    security:
+      id: ApiKeyQueryAuth
+      passthrough: true
   - name: getBasicAuthResource
     description: Resource requiring Basic Auth
     args: []
@@ -43,6 +49,9 @@ tools:
       security:
         id: BasicAuth
     responseTemplate: {}
+    security:
+      id: BasicAuth
+      passthrough: true
   - name: getBearerAuthResource
     description: Resource requiring Bearer Auth
     args: []
@@ -52,6 +61,9 @@ tools:
       security:
         id: BearerAuth
     responseTemplate: {}
+    security:
+      id: BearerAuth
+      passthrough: true
   - name: getMultiAuthResource
     description: Resource allowing multiple auth types (Bearer OR ApiKeyHeader)
     args: []
@@ -61,6 +73,9 @@ tools:
       security:
         id: BearerAuth
     responseTemplate: {}
+    security:
+      id: BearerAuth
+      passthrough: true
   - name: getNoAuthResource
     description: Resource requiring no authentication
     args: []

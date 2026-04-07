@@ -28,5 +28,25 @@ func schemaRefType(schemaRef *openapi3.SchemaRef) string {
 		return ""
 	}
 
-	return schemaType(schemaRef.Value)
+	return effectiveSchemaType(schemaRef.Value)
+}
+
+func effectiveSchemaType(schema *openapi3.Schema) string {
+	if schema == nil {
+		return ""
+	}
+
+	if typ := schemaType(schema); typ != "" {
+		return typ
+	}
+
+	if len(schema.Properties) > 0 {
+		return openapi3.TypeObject
+	}
+
+	if schema.Items != nil {
+		return openapi3.TypeArray
+	}
+
+	return ""
 }

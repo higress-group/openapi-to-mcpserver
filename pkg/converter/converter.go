@@ -253,6 +253,7 @@ func (c *Converter) convertOperation(path, method string, operation *openapi3.Op
 		return nil, fmt.Errorf("failed to convert request body: %w", err)
 	}
 	tool.Args = append(tool.Args, bodyArgs...)
+	tool.Args = deduplicateArgs(tool.Args)
 
 	// Sort arguments by name for consistent output
 	sort.Slice(tool.Args, func(i, j int) bool {
@@ -265,6 +266,12 @@ func (c *Converter) convertOperation(path, method string, operation *openapi3.Op
 		return nil, fmt.Errorf("failed to create request template: %w", err)
 	}
 	tool.RequestTemplate = *requestTemplate
+	if requestTemplate.Security != nil {
+		tool.Security = &models.ToolSecurityRequirement{
+			ID:          requestTemplate.Security.ID,
+			Passthrough: true,
+		}
+	}
 
 	// Create response template
 	responseTemplate, err := c.createResponseTemplate(operation)
@@ -465,6 +472,50 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 	}
 
 	return args, nil
+}
+
+func deduplicateArgs(args []models.Arg) []models.Arg {
+	unique := make([]models.Arg, 0, len(args))
+	indexByName := make(map[string]int, len(args))
+
+	for _, arg := range args {
+		if idx, exists := indexByName[arg.Name]; exists {
+			unique[idx] = mergeArg(unique[idx], arg)
+			continue
+		}
+
+		indexByName[arg.Name] = len(unique)
+		unique = append(unique, arg)
+	}
+
+	return unique
+}
+
+func mergeArg(primary, secondary models.Arg) models.Arg {
+	if primary.Description == "" {
+		primary.Description = secondary.Description
+	}
+	if primary.Type == "" {
+		primary.Type = secondary.Type
+	}
+	if primary.Default == nil {
+		primary.Default = secondary.Default
+	}
+	if len(primary.Enum) == 0 {
+		primary.Enum = secondary.Enum
+	}
+	if primary.Items == nil {
+		primary.Items = secondary.Items
+	}
+	if primary.Properties == nil {
+		primary.Properties = secondary.Properties
+	}
+	if primary.Position == "" {
+		primary.Position = secondary.Position
+	}
+	primary.Required = primary.Required || secondary.Required
+
+	return primary
 }
 
 func (c *Converter) allOfHandle(schemaRef *openapi3.SchemaRef) map[string]interface{} {
@@ -758,7 +809,7 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 		// This is due to incompatibility with mainstream MCP client SDKs like mcp-inspector
 		// which expect outputSchema to be an object type, not array
 		// See: https://github.com/modelcontextprotocol/inspector/issues/872
-		if schemaType(schema) == openapi3.TypeArray || (schemaType(schema) == "" && schema.Items != nil && len(schema.Properties) == 0) {
+		if effectiveSchemaType(schema) == openapi3.TypeArray {
 			return nil, nil
 		}
 
@@ -771,28 +822,28 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 		}
 
 		// Process schema based on its type or inferred type from properties/items
-		switch {
-		case schemaType(schema) == "":
-			fallthrough
-		case schemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0:
+		switch effectiveSchemaType(schema) {
+		case openapi3.TypeObject:
 			outputSchema["type"] = openapi3.TypeObject
 			properties := c.convertProperties(schema.Properties, schema.Required)
 			outputSchema["properties"] = properties
 			if len(schema.Required) > 0 {
 				outputSchema["required"] = schema.Required
 			}
-		case (schemaType(schema) == openapi3.TypeArray || (schemaType(schema) == "" && schema.Items != nil)) && schema.Items != nil && schema.Items.Value != nil:
+		case openapi3.TypeArray:
 			// This case should not be reached due to the early return above
 			// but keeping it for completeness
 			outputSchema["type"] = openapi3.TypeArray
 			itemsSchema := make(map[string]any)
-			itemsSchema["type"] = schemaType(schema.Items.Value)
+			if itemType := effectiveSchemaType(schema.Items.Value); itemType != "" {
+				itemsSchema["type"] = itemType
+			}
 			if schema.Items.Value.Description != "" {
 				itemsSchema["description"] = schema.Items.Value.Description
 			}
 
 			// Recursively handle array items if they are objects
-			if schemaType(schema.Items.Value) == openapi3.TypeObject || (schemaType(schema.Items.Value) == "" && len(schema.Items.Value.Properties) > 0) {
+			if effectiveSchemaType(schema.Items.Value) == openapi3.TypeObject {
 				nestedProps := c.convertProperties(schema.Items.Value.Properties, schema.Items.Value.Required)
 				itemsSchema["properties"] = nestedProps
 				if len(schema.Items.Value.Required) > 0 {
@@ -802,7 +853,8 @@ func (c *Converter) createOutputSchema(operation *openapi3.Operation) (map[strin
 
 			outputSchema["items"] = itemsSchema
 		default:
-			outputSchema["type"] = schemaType(schema)
+			// Inspector only accepts object outputSchema roots. Skip scalar/unknown roots.
+			return nil, nil
 		}
 
 		return outputSchema, nil
@@ -842,14 +894,16 @@ func (c *Converter) convertPropertiesWithVisited(properties map[string]*openapi3
 		}
 
 		propSchema := make(map[string]any)
-		propSchema["type"] = schemaRefType(propRef)
+		if propType := schemaRefType(propRef); propType != "" {
+			propSchema["type"] = propType
+		}
 
 		if propRef.Value.Description != "" {
 			propSchema["description"] = propRef.Value.Description
 		}
 
 		// Handle nested object properties recursively
-		if schemaType(propRef.Value) == openapi3.TypeObject && len(propRef.Value.Properties) > 0 {
+		if effectiveSchemaType(propRef.Value) == openapi3.TypeObject && len(propRef.Value.Properties) > 0 {
 			// Mark this schema as visited
 			visited[propRef.Value] = true
 			nestedProps := c.convertPropertiesWithVisited(propRef.Value.Properties, propRef.Value.Required, visited)
@@ -865,15 +919,17 @@ func (c *Converter) convertPropertiesWithVisited(properties map[string]*openapi3
 		}
 
 		// Handle array properties recursively
-		if schemaType(propRef.Value) == openapi3.TypeArray && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+		if effectiveSchemaType(propRef.Value) == openapi3.TypeArray && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
 			itemsSchema := make(map[string]any)
-			itemsSchema["type"] = schemaType(propRef.Value.Items.Value)
+			if itemType := effectiveSchemaType(propRef.Value.Items.Value); itemType != "" {
+				itemsSchema["type"] = itemType
+			}
 			if propRef.Value.Items.Value.Description != "" {
 				itemsSchema["description"] = propRef.Value.Items.Value.Description
 			}
 
 			// Recursively handle array items if they are objects
-			if schemaType(propRef.Value.Items.Value) == openapi3.TypeObject && len(propRef.Value.Items.Value.Properties) > 0 {
+			if effectiveSchemaType(propRef.Value.Items.Value) == openapi3.TypeObject && len(propRef.Value.Items.Value.Properties) > 0 {
 				// Check for circular reference in array items
 				if !visited[propRef.Value.Items.Value] {
 					// Mark this schema as visited
