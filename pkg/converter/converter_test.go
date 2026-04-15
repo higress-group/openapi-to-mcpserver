@@ -143,6 +143,379 @@ func TestConvertDeduplicatesArgsWithSameNameAcrossPathAndBody(t *testing.T) {
 	assert.Equal(t, "string", orgIDArg.Type)
 }
 
+func TestConvertInfersNestedRequestBodyTypesWithoutEmptyType(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Nested request body API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/pipelines": {
+				"post": {
+					"operationId": "createPipeline",
+					"requestBody": {
+						"required": true,
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": ["nodes"],
+									"properties": {
+										"nodes": {
+											"type": "array",
+											"items": {
+												"properties": {
+													"data": {
+														"properties": {
+															"node_type": {
+																"enum": ["stream", "function"]
+															}
+														}
+													},
+													"position": {
+														"properties": {
+															"x": {
+																"type": "number"
+															},
+															"y": {
+																"type": "number"
+															}
+														}
+													},
+													"io_type": {
+														"enum": ["input", "output", "default"]
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"responses": {
+						"200": {
+							"description": "ok"
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "nested-request-api"})
+	config, err := c.Convert()
+	require.NoError(t, err)
+	require.Len(t, config.Tools, 1)
+	require.Len(t, config.Tools[0].Args, 1)
+
+	nodesArg := config.Tools[0].Args[0]
+	assert.Equal(t, "nodes", nodesArg.Name)
+	assert.Equal(t, "array", nodesArg.Type)
+
+	items := nodesArg.Items
+	assert.Equal(t, "object", items["type"])
+
+	properties, ok := items["properties"].(map[string]any)
+	require.True(t, ok)
+
+	ioType, ok := properties["io_type"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "string", ioType["type"])
+
+	data, ok := properties["data"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", data["type"])
+
+	position, ok := properties["position"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", position["type"])
+
+	var encoded bytes.Buffer
+	err = yaml.NewEncoder(&encoded).Encode(config)
+	require.NoError(t, err)
+	assert.NotContains(t, encoded.String(), `type: ""`)
+}
+
+func TestConvertInfersArrayItemTypeFromSingleOneOfRef(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "OneOf array item API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/reports": {
+				"post": {
+					"operationId": "CreateReport",
+					"requestBody": {
+						"required": true,
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": ["destinations"],
+									"properties": {
+										"destinations": {
+											"type": "array",
+											"items": {
+												"$ref": "#/components/schemas/ReportDestination"
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"responses": {
+						"200": {
+							"description": "ok"
+						}
+					}
+				}
+			}
+		},
+		"components": {
+			"schemas": {
+				"ReportDestination": {
+					"oneOf": [
+						{
+							"type": "object",
+							"required": ["email"],
+							"properties": {
+								"email": {
+									"type": "string"
+								}
+							}
+						}
+					]
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "oneof-array-api"})
+	config, err := c.Convert()
+	require.NoError(t, err)
+	require.Len(t, config.Tools, 1)
+
+	var destinationsArg *models.Arg
+	for i := range config.Tools[0].Args {
+		if config.Tools[0].Args[i].Name == "destinations" {
+			destinationsArg = &config.Tools[0].Args[i]
+			break
+		}
+	}
+	require.NotNil(t, destinationsArg)
+	assert.Equal(t, "array", destinationsArg.Type)
+	assert.Equal(t, "object", destinationsArg.Items["type"])
+
+	properties, ok := destinationsArg.Items["properties"].(map[string]any)
+	require.True(t, ok)
+	email, ok := properties["email"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "string", email["type"])
+
+	var encoded bytes.Buffer
+	err = yaml.NewEncoder(&encoded).Encode(config)
+	require.NoError(t, err)
+	assert.NotContains(t, encoded.String(), `type: ""`)
+}
+
+func TestConvertInfersNullableComposedRefTypesForRequestAndResponse(t *testing.T) {
+	t.Parallel()
+
+	spec := []byte(`{
+		"openapi": "3.1.0",
+		"info": {
+			"title": "Nullable composed ref API",
+			"version": "1.0.0"
+		},
+		"paths": {
+			"/api/v2/{org_id}/alerts/generate_sql": {
+				"post": {
+					"operationId": "GenerateSql",
+					"parameters": [
+						{
+							"name": "org_id",
+							"in": "path",
+							"required": true,
+							"schema": {
+								"type": "string"
+							}
+						}
+					],
+					"requestBody": {
+						"required": true,
+						"content": {
+							"application/json": {
+								"schema": {
+									"type": "object",
+									"required": ["query_condition"],
+									"properties": {
+										"query_condition": {
+											"type": "object",
+											"properties": {
+												"aggregation": {
+													"oneOf": [
+														{"type": "null"},
+														{"$ref": "#/components/schemas/Aggregation"}
+													]
+												},
+												"promql_condition": {
+													"oneOf": [
+														{"type": "null"},
+														{"$ref": "#/components/schemas/Condition"}
+													]
+												},
+												"search_event_type": {
+													"oneOf": [
+														{"type": "null"},
+														{"$ref": "#/components/schemas/SearchEventType"}
+													]
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					},
+					"responses": {
+						"200": {
+							"description": "Success",
+							"content": {
+								"application/json": {
+									"schema": {
+										"type": "object",
+										"properties": {
+											"metadata": {
+												"oneOf": [
+													{"type": "null"},
+													{"$ref": "#/components/schemas/Metadata"}
+												]
+											},
+											"sql": {
+												"type": "string"
+											}
+										},
+										"required": ["sql"]
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		},
+		"components": {
+			"schemas": {
+				"Aggregation": {
+					"type": "object",
+					"required": ["function"],
+					"properties": {
+						"function": {
+							"type": "string"
+						}
+					}
+				},
+				"Condition": {
+					"type": "object",
+					"required": ["column"],
+					"properties": {
+						"column": {
+							"type": "string"
+						}
+					}
+				},
+				"SearchEventType": {
+					"type": "string",
+					"enum": ["ui", "alerts"]
+				},
+				"Metadata": {
+					"type": "object",
+					"required": ["help"],
+					"properties": {
+						"help": {
+							"type": "string"
+						}
+					}
+				}
+			}
+		}
+	}`)
+
+	p := parser.NewParser()
+	err := p.Parse(spec)
+	require.NoError(t, err)
+
+	c := NewConverter(p, models.ConvertOptions{ServerName: "nullable-composed-api"})
+	config, err := c.Convert()
+	require.NoError(t, err)
+	require.Len(t, config.Tools, 1)
+
+	var queryConditionArg *models.Arg
+	for i := range config.Tools[0].Args {
+		if config.Tools[0].Args[i].Name == "query_condition" {
+			queryConditionArg = &config.Tools[0].Args[i]
+			break
+		}
+	}
+	require.NotNil(t, queryConditionArg)
+	require.NotNil(t, queryConditionArg.Properties)
+
+	aggregation, ok := queryConditionArg.Properties["aggregation"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", aggregation["type"])
+
+	aggregationProps, ok := aggregation["properties"].(map[string]any)
+	require.True(t, ok)
+	functionProp, ok := aggregationProps["function"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "string", functionProp["type"])
+
+	promqlCondition, ok := queryConditionArg.Properties["promql_condition"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", promqlCondition["type"])
+
+	searchEventType, ok := queryConditionArg.Properties["search_event_type"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "string", searchEventType["type"])
+
+	require.NotNil(t, config.Tools[0].OutputSchema)
+	outputProps, ok := config.Tools[0].OutputSchema["properties"].(map[string]any)
+	require.True(t, ok)
+
+	metadata, ok := outputProps["metadata"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "object", metadata["type"])
+
+	metadataProps, ok := metadata["properties"].(map[string]any)
+	require.True(t, ok)
+	helpProp, ok := metadataProps["help"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "string", helpProp["type"])
+
+	var encoded bytes.Buffer
+	err = yaml.NewEncoder(&encoded).Encode(config)
+	require.NoError(t, err)
+	assert.NotContains(t, encoded.String(), `type: ""`)
+	assert.NotContains(t, encoded.String(), "{}")
+}
+
 func TestEndToEndConversion(t *testing.T) {
 	// Test cases
 	testCases := []struct {

@@ -312,10 +312,11 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 
 		// Set the type based on the schema
 		if param.Schema != nil && param.Schema.Value != nil {
-			schema := param.Schema.Value
+			schema := unwrapSingleComposedSchema(param.Schema.Value)
+			resolvedType := effectiveSchemaType(schema)
 
 			// Set the type based on the schema type
-			arg.Type = schemaType(schema)
+			arg.Type = resolvedType
 
 			// Handle enum values
 			if len(schema.Enum) > 0 {
@@ -323,17 +324,24 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 			}
 
 			// Handle array type recursively
-			if schemaType(schema) == openapi3.TypeArray && schema.Items != nil && schema.Items.Value != nil {
-				arg.Items = map[string]any{
-					"type": schemaType(schema.Items.Value),
+			if resolvedType == openapi3.TypeArray && schema.Items != nil && schema.Items.Value != nil {
+				itemSchema := unwrapSingleComposedSchema(schema.Items.Value)
+				arg.Items = map[string]any{}
+				itemsType := effectiveSchemaType(itemSchema)
+				if itemsType != "" {
+					arg.Items["type"] = itemsType
 				}
-				if schema.Items.Value.Description != "" {
-					arg.Items["description"] = schema.Items.Value.Description
+				itemDescription := firstNonEmpty(schema.Items.Value.Description)
+				if itemSchema != nil {
+					itemDescription = firstNonEmpty(itemSchema.Description, itemDescription)
+				}
+				if itemDescription != "" || itemsType != openapi3.TypeObject {
+					arg.Items["description"] = itemDescription
 				}
 
 				// Recursively handle array items if they are objects
-				if schemaType(schema.Items.Value) == openapi3.TypeObject && len(schema.Items.Value.Properties) > 0 {
-					nestedProps := c.convertNestedProperties(schema.Items.Value)
+				if itemsType == openapi3.TypeObject && itemSchema != nil && len(itemSchema.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(itemSchema)
 					if nestedProps != nil {
 						arg.Items["properties"] = nestedProps["properties"]
 						if required, ok := nestedProps["required"]; ok {
@@ -344,7 +352,7 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 			}
 
 			// Handle object type recursively
-			if schemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0 {
+			if resolvedType == openapi3.TypeObject && len(schema.Properties) > 0 {
 				nestedProps := c.convertNestedProperties(schema)
 				if nestedProps != nil {
 					arg.Properties = nestedProps["properties"].(map[string]any)
@@ -374,14 +382,16 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 			continue
 		}
 
-		schema := mediaType.Schema.Value
+		schema := unwrapSingleComposedSchema(mediaType.Schema.Value)
 
 		// For JSON and form content types, convert the schema to arguments
 		if strings.Contains(contentType, "application/json") ||
 			strings.Contains(contentType, "application/x-www-form-urlencoded") {
+			resolvedType := effectiveSchemaType(schema)
 
 			// For array type, create a single argument to hold the entire array
-			if schemaType(schema) == openapi3.TypeArray && schema.Items != nil && schema.Items.Value != nil {
+			if resolvedType == openapi3.TypeArray && schema.Items != nil && schema.Items.Value != nil {
+				itemSchema := unwrapSingleComposedSchema(schema.Items.Value)
 				arg := models.Arg{
 					Name:        "items",
 					Description: requestBody.Description,
@@ -391,16 +401,22 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 				}
 
 				// Set items schema
-				arg.Items = map[string]any{
-					"type": schemaType(schema.Items.Value),
+				arg.Items = map[string]any{}
+				itemsType := effectiveSchemaType(itemSchema)
+				if itemsType != "" {
+					arg.Items["type"] = itemsType
 				}
-				if schema.Items.Value.Description != "" {
-					arg.Items["description"] = schema.Items.Value.Description
+				itemDescription := firstNonEmpty(schema.Items.Value.Description)
+				if itemSchema != nil {
+					itemDescription = firstNonEmpty(itemSchema.Description, itemDescription)
+				}
+				if itemDescription != "" || itemsType != openapi3.TypeObject {
+					arg.Items["description"] = itemDescription
 				}
 
 				// Recursively handle array items if they are objects
-				if schemaType(schema.Items.Value) == openapi3.TypeObject && len(schema.Items.Value.Properties) > 0 {
-					nestedProps := c.convertNestedProperties(schema.Items.Value)
+				if itemsType == openapi3.TypeObject && itemSchema != nil && len(itemSchema.Properties) > 0 {
+					nestedProps := c.convertNestedProperties(itemSchema)
 					if nestedProps != nil {
 						arg.Items["properties"] = nestedProps["properties"]
 						if required, ok := nestedProps["required"]; ok {
@@ -410,39 +426,54 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 				}
 
 				args = append(args, arg)
-			} else if schemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0 {
+			} else if resolvedType == openapi3.TypeObject && len(schema.Properties) > 0 {
 				// For object type, convert each property to an argument
 				for propName, propRef := range schema.Properties {
 					if propRef.Value == nil {
 						continue
 					}
 
+					propSchema := unwrapSingleComposedSchema(propRef.Value)
+					propType := schemaRefType(propRef)
+					if propType == "" {
+						propType = effectiveSchemaType(propSchema)
+					}
+
 					arg := models.Arg{
 						Name:        propName,
-						Description: propRef.Value.Description,
-						Type:        schemaRefType(propRef),
+						Description: firstNonEmpty(propSchema.Description, propRef.Value.Description),
+						Type:        propType,
 						Required:    contains(schema.Required, propName),
 						Position:    "body", // Set position to "body" for request body parameters
 					}
 
 					// Handle enum values
-					if len(propRef.Value.Enum) > 0 {
-						arg.Enum = propRef.Value.Enum
+					if len(propSchema.Enum) > 0 {
+						arg.Enum = propSchema.Enum
 					}
 
 					// Handle array type recursively
-					if schemaType(propRef.Value) == openapi3.TypeArray && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
-						arg.Items = map[string]any{
-							"type":        schemaType(propRef.Value.Items.Value),
-							"description": propRef.Value.Items.Value.Description,
+					if propType == openapi3.TypeArray && propSchema.Items != nil && propSchema.Items.Value != nil {
+						itemSchema := unwrapSingleComposedSchema(propSchema.Items.Value)
+						arg.Items = map[string]any{}
+						itemType := effectiveSchemaType(itemSchema)
+						if itemType != "" {
+							arg.Items["type"] = itemType
 						}
-						if propRef.Value.Items.Value.MinItems > 0 {
-							arg.Items["minItems"] = propRef.Value.Items.Value.MinItems
+						itemDescription := firstNonEmpty(propSchema.Items.Value.Description)
+						if itemSchema != nil {
+							itemDescription = firstNonEmpty(itemSchema.Description, itemDescription)
+							if itemSchema.MinItems > 0 {
+								arg.Items["minItems"] = itemSchema.MinItems
+							}
+						}
+						if itemDescription != "" || itemType != openapi3.TypeObject {
+							arg.Items["description"] = itemDescription
 						}
 
 						// Recursively handle array items if they are objects
-						if schemaType(propRef.Value.Items.Value) == openapi3.TypeObject && len(propRef.Value.Items.Value.Properties) > 0 {
-							nestedProps := c.convertNestedProperties(propRef.Value.Items.Value)
+						if itemType == openapi3.TypeObject && itemSchema != nil && len(itemSchema.Properties) > 0 {
+							nestedProps := c.convertNestedProperties(itemSchema)
 							if nestedProps != nil {
 								arg.Items["properties"] = nestedProps["properties"]
 								if required, ok := nestedProps["required"]; ok {
@@ -453,16 +484,16 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 					}
 
 					// Handle object type recursively
-					if schemaType(propRef.Value) == openapi3.TypeObject && len(propRef.Value.Properties) > 0 {
-						nestedProps := c.convertNestedProperties(propRef.Value)
+					if propType == openapi3.TypeObject && len(propSchema.Properties) > 0 {
+						nestedProps := c.convertNestedProperties(propSchema)
 						if nestedProps != nil {
 							arg.Properties = nestedProps["properties"].(map[string]any)
 						}
 					}
 					// Handle allOf
-					if schemaType(propRef.Value) == "" && len(propRef.Value.AllOf) == 1 {
+					if schemaType(propSchema) == "" && len(propSchema.AllOf) == 1 {
 						arg.Type = openapi3.TypeObject
-						arg.Properties = c.allOfHandle(propRef.Value.AllOf[0])
+						arg.Properties = c.allOfHandle(propSchema.AllOf[0])
 					}
 
 					args = append(args, arg)
@@ -886,9 +917,10 @@ func (c *Converter) convertPropertiesWithVisited(properties map[string]*openapi3
 		if propRef.Value == nil {
 			continue
 		}
+		propValue := unwrapSingleComposedSchema(propRef.Value)
 
 		// Check for circular reference
-		if visited[propRef.Value] {
+		if visited[propValue] {
 			// Skip this property to avoid infinite recursion
 			continue
 		}
@@ -898,49 +930,50 @@ func (c *Converter) convertPropertiesWithVisited(properties map[string]*openapi3
 			propSchema["type"] = propType
 		}
 
-		if propRef.Value.Description != "" {
-			propSchema["description"] = propRef.Value.Description
+		if description := firstNonEmpty(propValue.Description, propRef.Value.Description); description != "" {
+			propSchema["description"] = description
 		}
 
 		// Handle nested object properties recursively
-		if effectiveSchemaType(propRef.Value) == openapi3.TypeObject && len(propRef.Value.Properties) > 0 {
+		if effectiveSchemaType(propValue) == openapi3.TypeObject && len(propValue.Properties) > 0 {
 			// Mark this schema as visited
-			visited[propRef.Value] = true
-			nestedProps := c.convertPropertiesWithVisited(propRef.Value.Properties, propRef.Value.Required, visited)
+			visited[propValue] = true
+			nestedProps := c.convertPropertiesWithVisited(propValue.Properties, propValue.Required, visited)
 			// Unmark after processing to allow the same schema in different branches
-			delete(visited, propRef.Value)
+			delete(visited, propValue)
 
 			propSchema["properties"] = nestedProps
 
 			// Add required fields for nested objects
-			if len(propRef.Value.Required) > 0 {
-				propSchema["required"] = propRef.Value.Required
+			if len(propValue.Required) > 0 {
+				propSchema["required"] = propValue.Required
 			}
 		}
 
 		// Handle array properties recursively
-		if effectiveSchemaType(propRef.Value) == openapi3.TypeArray && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+		if effectiveSchemaType(propValue) == openapi3.TypeArray && propValue.Items != nil && propValue.Items.Value != nil {
+			itemSchema := unwrapSingleComposedSchema(propValue.Items.Value)
 			itemsSchema := make(map[string]any)
-			if itemType := effectiveSchemaType(propRef.Value.Items.Value); itemType != "" {
+			if itemType := effectiveSchemaType(itemSchema); itemType != "" {
 				itemsSchema["type"] = itemType
 			}
-			if propRef.Value.Items.Value.Description != "" {
-				itemsSchema["description"] = propRef.Value.Items.Value.Description
+			if description := firstNonEmpty(itemSchema.Description, propValue.Items.Value.Description); description != "" {
+				itemsSchema["description"] = description
 			}
 
 			// Recursively handle array items if they are objects
-			if effectiveSchemaType(propRef.Value.Items.Value) == openapi3.TypeObject && len(propRef.Value.Items.Value.Properties) > 0 {
+			if effectiveSchemaType(itemSchema) == openapi3.TypeObject && itemSchema != nil && len(itemSchema.Properties) > 0 {
 				// Check for circular reference in array items
-				if !visited[propRef.Value.Items.Value] {
+				if !visited[itemSchema] {
 					// Mark this schema as visited
-					visited[propRef.Value.Items.Value] = true
-					nestedProps := c.convertPropertiesWithVisited(propRef.Value.Items.Value.Properties, propRef.Value.Items.Value.Required, visited)
+					visited[itemSchema] = true
+					nestedProps := c.convertPropertiesWithVisited(itemSchema.Properties, itemSchema.Required, visited)
 					// Unmark after processing to allow the same schema in different branches
-					delete(visited, propRef.Value.Items.Value)
+					delete(visited, itemSchema)
 
 					itemsSchema["properties"] = nestedProps
-					if len(propRef.Value.Items.Value.Required) > 0 {
-						itemsSchema["required"] = propRef.Value.Items.Value.Required
+					if len(itemSchema.Required) > 0 {
+						itemsSchema["required"] = itemSchema.Required
 					}
 				}
 			}
@@ -962,6 +995,7 @@ func (c *Converter) convertNestedProperties(schema *openapi3.Schema) map[string]
 // convertNestedPropertiesWithVisited recursively converts nested properties for request body arguments
 // with circular reference detection using a visited map
 func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, visited map[*openapi3.Schema]bool) map[string]any {
+	schema = unwrapSingleComposedSchema(schema)
 	if schema == nil {
 		return nil
 	}
@@ -975,7 +1009,7 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 	result := make(map[string]any)
 
 	// Handle object type with properties
-	if schemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0 {
+	if effectiveSchemaType(schema) == openapi3.TypeObject && len(schema.Properties) > 0 {
 		properties := make(map[string]any)
 
 		// Mark this schema as visited
@@ -985,27 +1019,30 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 			if propRef.Value == nil {
 				continue
 			}
+			propValue := unwrapSingleComposedSchema(propRef.Value)
 
 			propSchema := make(map[string]any)
 
 			// Add fields in alphabetical order for deterministic output: default, description, enum, type
-			if propRef.Value.Default != nil {
-				propSchema["default"] = propRef.Value.Default
+			if propValue.Default != nil {
+				propSchema["default"] = propValue.Default
 			}
 
-			if propRef.Value.Description != "" {
-				propSchema["description"] = propRef.Value.Description
+			if description := firstNonEmpty(propValue.Description, propRef.Value.Description); description != "" {
+				propSchema["description"] = description
 			}
 
-			if len(propRef.Value.Enum) > 0 {
-				propSchema["enum"] = propRef.Value.Enum
+			if len(propValue.Enum) > 0 {
+				propSchema["enum"] = propValue.Enum
 			}
 
-			propSchema["type"] = schemaRefType(propRef)
+			if propType := schemaRefType(propRef); propType != "" {
+				propSchema["type"] = propType
+			}
 
 			// Recursively handle nested object properties
-			if schemaType(propRef.Value) == openapi3.TypeObject && len(propRef.Value.Properties) > 0 {
-				nestedProps := c.convertNestedPropertiesWithVisited(propRef.Value, visited)
+			if effectiveSchemaType(propValue) == openapi3.TypeObject && len(propValue.Properties) > 0 {
+				nestedProps := c.convertNestedPropertiesWithVisited(propValue, visited)
 				if nestedProps != nil {
 					// Extract the actual properties to avoid double wrapping
 					if props, ok := nestedProps["properties"]; ok {
@@ -1015,19 +1052,22 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 			}
 
 			// Handle array type recursively
-			if schemaType(propRef.Value) == openapi3.TypeArray && propRef.Value.Items != nil && propRef.Value.Items.Value != nil {
+			if effectiveSchemaType(propValue) == openapi3.TypeArray && propValue.Items != nil && propValue.Items.Value != nil {
+				itemSchema := unwrapSingleComposedSchema(propValue.Items.Value)
 				itemsSchema := make(map[string]any)
-				itemsSchema["type"] = schemaType(propRef.Value.Items.Value)
-				if propRef.Value.Items.Value.Description != "" {
-					itemsSchema["description"] = propRef.Value.Items.Value.Description
+				if itemType := effectiveSchemaType(itemSchema); itemType != "" {
+					itemsSchema["type"] = itemType
 				}
-				if propRef.Value.Items.Value.MinItems > 0 {
-					itemsSchema["minItems"] = propRef.Value.Items.Value.MinItems
+				if description := firstNonEmpty(itemSchema.Description, propValue.Items.Value.Description); description != "" {
+					itemsSchema["description"] = description
+				}
+				if itemSchema != nil && itemSchema.MinItems > 0 {
+					itemsSchema["minItems"] = itemSchema.MinItems
 				}
 
 				// Recursively handle array items if they are objects
-				if schemaType(propRef.Value.Items.Value) == openapi3.TypeObject && len(propRef.Value.Items.Value.Properties) > 0 {
-					nestedProps := c.convertNestedPropertiesWithVisited(propRef.Value.Items.Value, visited)
+				if effectiveSchemaType(itemSchema) == openapi3.TypeObject && itemSchema != nil && len(itemSchema.Properties) > 0 {
+					nestedProps := c.convertNestedPropertiesWithVisited(itemSchema, visited)
 					if nestedProps != nil {
 						// Extract the actual properties to avoid double wrapping
 						if props, ok := nestedProps["properties"]; ok {
