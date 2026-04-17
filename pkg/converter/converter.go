@@ -58,13 +58,12 @@ func (c *Converter) Convert() (*models.MCPConfig, error) {
 			if schemeRef != nil && schemeRef.Value != nil {
 				scheme := schemeRef.Value
 				mcpScheme := models.SecurityScheme{
-					ID:     name,
-					Type:   scheme.Type,
-					Scheme: scheme.Scheme,
-					In:     scheme.In,
-					Name:   scheme.Name,
-					// DefaultCredential is not directly available in OpenAPI SecurityScheme,
-					// it's an extension for MCP. User can set it via template or manually.
+					ID:                name,
+					Type:              scheme.Type,
+					Scheme:            scheme.Scheme,
+					In:                scheme.In,
+					Name:              scheme.Name,
+					DefaultCredential: extractDefaultCredential(scheme),
 				}
 				config.Server.SecuritySchemes = append(config.Server.SecuritySchemes, mcpScheme)
 			}
@@ -101,6 +100,34 @@ func (c *Converter) Convert() (*models.MCPConfig, error) {
 	})
 
 	return config, nil
+}
+
+// extractDefaultCredential gets MCP-specific default credential from security scheme extensions.
+// It prefers the OpenAPI extension key x-defaultCredential, and falls back to defaultCredential
+// for backward compatibility.
+func extractDefaultCredential(scheme *openapi3.SecurityScheme) string {
+	if scheme == nil || len(scheme.Extensions) == 0 {
+		return ""
+	}
+
+	if value, found := scheme.Extensions["x-defaultCredential"]; found {
+		return stringifyExtensionValue(value)
+	}
+	if value, found := scheme.Extensions["defaultCredential"]; found {
+		return stringifyExtensionValue(value)
+	}
+
+	return ""
+}
+
+func stringifyExtensionValue(value any) string {
+	if value == nil {
+		return ""
+	}
+	if str, ok := value.(string); ok {
+		return str
+	}
+	return fmt.Sprintf("%v", value)
 }
 
 // applyTemplate applies a template to the generated configuration

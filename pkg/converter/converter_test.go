@@ -79,6 +79,12 @@ func TestEndToEndConversion(t *testing.T) {
 			serverName:     "openapi-server", // Matches the default or can be specified if different
 		},
 		{
+			name:           "Security Schemes With Default Credential",
+			inputFile:      "../../test/security-default-credential-test.json",
+			expectedOutput: "../../test/expected-security-default-credential-test-mcp.yaml",
+			serverName:     "openapi-server",
+		},
+		{
 			name:           "Tools Args array of object",
 			inputFile:      "../../test/tools-args-array-of-object.json",
 			expectedOutput: "../../test/expected-tools-args-array-of-object-mcp.yaml",
@@ -160,6 +166,60 @@ func TestEndToEndConversion(t *testing.T) {
 
 			// Compare the actual and expected output
 			assert.Equal(t, string(expectedYAML), string(actualYAML))
+		})
+	}
+}
+
+func TestExtractDefaultCredential(t *testing.T) {
+	testCases := []struct {
+		name       string
+		extensions map[string]any
+		expected   string
+	}{
+		{
+			name: "prefer x-defaultCredential when both exist",
+			extensions: map[string]any{
+				"x-defaultCredential": "from-extension",
+				"defaultCredential":   "from-legacy",
+			},
+			expected: "from-extension",
+		},
+		{
+			name: "fallback to legacy defaultCredential",
+			extensions: map[string]any{
+				"defaultCredential": "legacy-value",
+			},
+			expected: "legacy-value",
+		},
+		{
+			name: "stringify non-string extension value",
+			extensions: map[string]any{
+				"defaultCredential": 12345,
+			},
+			expected: "12345",
+		},
+		{
+			name: "return empty when extension missing",
+			extensions: map[string]any{
+				"x-another-field": "value",
+			},
+			expected: "",
+		},
+		{
+			name: "return empty for nil extension value",
+			extensions: map[string]any{
+				"defaultCredential": nil,
+			},
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			scheme := &openapi3.SecurityScheme{
+				Extensions: tc.extensions,
+			}
+			assert.Equal(t, tc.expected, extractDefaultCredential(scheme))
 		})
 	}
 }

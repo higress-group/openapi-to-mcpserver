@@ -393,7 +393,9 @@ server:
   # ... other server config ...
 ```
 
-The `defaultCredential` field within a security scheme is an MCP-specific extension and is not derived from the OpenAPI specification. You can set it using the `--template` feature if needed.
+The `defaultCredential` field within a security scheme is an MCP-specific extension (not part of the OpenAPI standard fields). During conversion, this tool reads `x-defaultCredential` (recommended) and also supports `defaultCredential` for backward compatibility.
+
+If you run with `--validate`, use `x-defaultCredential` because non-`x-` custom fields may be rejected by OpenAPI validation.
 
 ### Tool-Level Security Requirements
 
