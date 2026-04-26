@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3"
+	"gopkg.in/yaml.v3"
 )
 
 // Parser represents an OpenAPI parser
@@ -42,12 +43,16 @@ func (p *Parser) ParseFile(filePath string) error {
 func (p *Parser) Parse(data []byte) error {
 	loader := openapi3.NewLoader()
 
+	normalizedData, err := normalizeOpenAPI31Document(data)
+	if err != nil {
+		return fmt.Errorf("failed to normalize OpenAPI document: %w", err)
+	}
+
 	// Try to parse as JSON first
 	var doc *openapi3.T
-	var err error
 
 	// Parse the document (loader can handle both JSON and YAML)
-	doc, err = loader.LoadFromData(data)
+	doc, err = loader.LoadFromData(normalizedData)
 
 	if err != nil {
 		return fmt.Errorf("failed to parse OpenAPI document: %w", err)
@@ -72,10 +77,10 @@ func (p *Parser) GetDocument() *openapi3.T {
 
 // GetPaths returns all paths in the OpenAPI document
 func (p *Parser) GetPaths() map[string]*openapi3.PathItem {
-	if p.doc == nil {
+	if p.doc == nil || p.doc.Paths == nil {
 		return nil
 	}
-	return p.doc.Paths
+	return p.doc.Paths.Map()
 }
 
 // GetServers returns all servers in the OpenAPI document
@@ -98,6 +103,137 @@ func (p *Parser) GetInfo() *openapi3.Info {
 func isJSON(data []byte) bool {
 	var js json.RawMessage
 	return json.Unmarshal(data, &js) == nil
+}
+
+var schemaObjectKeywords = map[string]struct{}{
+	"additionalProperties":  {},
+	"contains":              {},
+	"else":                  {},
+	"if":                    {},
+	"items":                 {},
+	"not":                   {},
+	"propertyNames":         {},
+	"then":                  {},
+	"unevaluatedItems":      {},
+	"unevaluatedProperties": {},
+}
+
+var schemaMapKeywords = map[string]struct{}{
+	"$defs":             {},
+	"dependentSchemas":  {},
+	"patternProperties": {},
+	"properties":        {},
+}
+
+var schemaArrayKeywords = map[string]struct{}{
+	"allOf":       {},
+	"anyOf":       {},
+	"oneOf":       {},
+	"prefixItems": {},
+}
+
+func normalizeOpenAPI31Document(data []byte) ([]byte, error) {
+	var raw any
+	var err error
+
+	if isJSON(data) {
+		err = json.Unmarshal(data, &raw)
+	} else {
+		err = yaml.Unmarshal(data, &raw)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	root, ok := raw.(map[string]any)
+	if !ok {
+		return data, nil
+	}
+
+	version, _ := root["openapi"].(string)
+	if !strings.HasPrefix(version, "3.1") {
+		return data, nil
+	}
+
+	normalized, ok := normalizeDocumentValue(root).(map[string]any)
+	if !ok {
+		return data, nil
+	}
+
+	return json.Marshal(normalized)
+}
+
+func normalizeDocumentValue(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		normalized := make(map[string]any, len(typed))
+		for key, child := range typed {
+			switch {
+			case hasKey(schemaObjectKeywords, key):
+				normalized[key] = normalizePossibleSchema(child)
+			case hasKey(schemaMapKeywords, key):
+				normalized[key] = normalizeSchemaMap(child)
+			case hasKey(schemaArrayKeywords, key):
+				normalized[key] = normalizeSchemaArray(child)
+			default:
+				normalized[key] = normalizeDocumentValue(child)
+			}
+		}
+		return normalized
+	case []any:
+		normalized := make([]any, len(typed))
+		for i, child := range typed {
+			normalized[i] = normalizeDocumentValue(child)
+		}
+		return normalized
+	default:
+		return value
+	}
+}
+
+func normalizePossibleSchema(value any) any {
+	switch typed := value.(type) {
+	case bool:
+		if typed {
+			return map[string]any{}
+		}
+		return map[string]any{
+			"not": map[string]any{},
+		}
+	default:
+		return normalizeDocumentValue(value)
+	}
+}
+
+func normalizeSchemaMap(value any) any {
+	typed, ok := value.(map[string]any)
+	if !ok {
+		return normalizeDocumentValue(value)
+	}
+
+	normalized := make(map[string]any, len(typed))
+	for key, child := range typed {
+		normalized[key] = normalizePossibleSchema(child)
+	}
+	return normalized
+}
+
+func normalizeSchemaArray(value any) any {
+	typed, ok := value.([]any)
+	if !ok {
+		return normalizeDocumentValue(value)
+	}
+
+	normalized := make([]any, len(typed))
+	for i, child := range typed {
+		normalized[i] = normalizePossibleSchema(child)
+	}
+	return normalized
+}
+
+func hasKey(values map[string]struct{}, key string) bool {
+	_, ok := values[key]
+	return ok
 }
 
 // GetOperationID generates an operation ID if one is not provided
