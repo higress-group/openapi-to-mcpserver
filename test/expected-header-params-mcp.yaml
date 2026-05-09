@@ -50,6 +50,7 @@ tools:
       - name: Accept-Language
         description: Preferred language for response
         type: string
+        default: en-US
         position: header
       - name: Authorization
         description: Bearer token for authentication

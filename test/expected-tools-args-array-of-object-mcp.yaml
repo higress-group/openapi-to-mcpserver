@@ -8,6 +8,7 @@ tools:
         description: 图片list base64
         type: array
         required: true
+        default: []
         items:
           description: image
           properties:
