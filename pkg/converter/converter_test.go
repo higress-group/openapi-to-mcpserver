@@ -2,6 +2,7 @@ package converter
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -10,9 +11,18 @@ import (
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/models"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/parser"
+	"github.com/higress-group/openapi-to-mcpserver/pkg/validator"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
+
+func mustMarshalJSON(v any) []byte {
+	data, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
 
 func TestEndToEndConversion(t *testing.T) {
 	// Test cases
@@ -451,4 +461,71 @@ func TestCreateOutputSchemaArrayRoot(t *testing.T) {
 	assert.True(t, ok)
 	assert.Contains(t, properties, "id")
 	assert.Contains(t, properties, "name")
+}
+
+func TestConvertRequestBodyMultipartBinaryError(t *testing.T) {
+	binarySchema := &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string", Format: "binary"}}
+	arrayBinarySchema := &openapi3.SchemaRef{Value: &openapi3.Schema{
+		Type:  "array",
+		Items: &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string", Format: "binary"}},
+	}}
+	textSchema := &openapi3.SchemaRef{Value: &openapi3.Schema{Type: "string"}}
+
+	tests := []struct {
+		name           string
+		props          map[string]*openapi3.SchemaRef
+		expectIncompat bool
+	}{
+		{"direct binary field", map[string]*openapi3.SchemaRef{"file": binarySchema, "name": textSchema}, true},
+		{"array of binary files", map[string]*openapi3.SchemaRef{"files": arrayBinarySchema, "id": textSchema}, true},
+		{"no binary fields", map[string]*openapi3.SchemaRef{"name": textSchema}, true}, // multipart itself is incompatible
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := parser.NewParser()
+			doc := &openapi3.T{
+				OpenAPI: "3.0.0",
+				Info:    &openapi3.Info{Title: "test", Version: "1.0"},
+				Paths: map[string]*openapi3.PathItem{
+					"/upload": {
+						Post: &openapi3.Operation{
+							OperationID: "uploadFile",
+							RequestBody: &openapi3.RequestBodyRef{Value: &openapi3.RequestBody{
+								Content: map[string]*openapi3.MediaType{
+									"multipart/form-data": {
+										Schema: &openapi3.SchemaRef{Value: &openapi3.Schema{
+											Type:       "object",
+											Properties: tc.props,
+										}},
+									},
+								},
+							}},
+							Responses: openapi3.Responses{},
+						},
+					},
+				},
+			}
+			err := p.Parse(mustMarshalJSON(doc))
+			assert.NoError(t, err)
+
+			// Use validator directly (decoupled from converter)
+			result := validator.ValidateDocument(p.GetDocument())
+			if tc.expectIncompat {
+				assert.NotEmpty(t, result.Issues)
+				assert.False(t, result.IsCompatible("/upload", "post"))
+				// Verify the issue message mentions "not supported" or "multipart"
+				found := false
+				for _, issue := range result.Issues {
+					if strings.Contains(issue.Reason, "not supported") || strings.Contains(issue.Reason, "multipart") {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "expected issue about multipart/binary not supported")
+			} else {
+				assert.True(t, result.IsCompatible("/upload", "post"))
+			}
+		})
+	}
 }
