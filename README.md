@@ -22,6 +22,7 @@ openapi-to-mcp --input path/to/openapi.json --output path/to/mcp-server.yaml
 - `--tool-prefix`: Prefix for tool names (default: "")
 - `--format`: Output format (yaml or json) (default: "yaml")
 - `--validate`: Validate the OpenAPI specification (default: false)
+- `--mcp-compat`: MCP compatibility check mode: `strict` or `warn` (default: disabled)
 - `--template`: Path to a template file to patch the output (default: "")
 
 ## Example
@@ -510,6 +511,24 @@ When using the generated configuration with Higress:
 4. No additional configuration is required - the presence of output schemas enables the new features
 
 For more information about MCP Protocol 2025-06-18, refer to the [MCP specification](https://modelcontextprotocol.io/specification).
+
+## MCP Compatibility Check
+
+Not all OpenAPI operations can be converted to MCP tools. MCP only accepts JSON-serializable inputs, so operations using binary uploads, streaming, or non-JSON content types are incompatible.
+
+Use `--mcp-compat` to detect these issues:
+
+```bash
+# Strict mode: error and stop on incompatible operations
+openapi-to-mcp --input api.json --output mcp.yaml --mcp-compat strict
+
+# Warn mode: skip incompatible operations with warnings, convert the rest
+openapi-to-mcp --input api.json --output mcp.yaml --mcp-compat warn
+```
+
+When not specified, no compatibility check is performed (backward compatible).
+
+For details on detected patterns and how to fix them, see [MCP Compatibility Guide](docs/mcp-compatibility.md).
 
 ## Contributing
 

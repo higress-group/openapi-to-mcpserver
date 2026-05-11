@@ -18,6 +18,9 @@ import (
 type Converter struct {
 	parser  *parser.Parser
 	options models.ConvertOptions
+	// SkipFilter optionally filters out operations that should not be converted.
+	// If set, returns true for path+method combinations that should be skipped.
+	SkipFilter func(path, method string) bool
 }
 
 // NewConverter creates a new OpenAPI to MCP converter
@@ -78,6 +81,11 @@ func (c *Converter) Convert() (*models.MCPConfig, error) {
 	for path, pathItem := range c.parser.GetPaths() {
 		operations := getOperations(pathItem)
 		for method, operation := range operations {
+			// Skip if filtered out
+			if c.SkipFilter != nil && c.SkipFilter(path, method) {
+				continue
+			}
+
 			tool, err := c.convertOperation(path, method, operation)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert operation %s %s: %w", method, path, err)

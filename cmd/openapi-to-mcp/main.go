@@ -11,6 +11,7 @@ import (
 	"github.com/higress-group/openapi-to-mcpserver/pkg/converter"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/models"
 	"github.com/higress-group/openapi-to-mcpserver/pkg/parser"
+	"github.com/higress-group/openapi-to-mcpserver/pkg/validator"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,6 +23,7 @@ func main() {
 	toolNamePrefix := flag.String("tool-prefix", "", "Prefix for tool names")
 	format := flag.String("format", "yaml", "Output format (yaml or json)")
 	validate := flag.Bool("validate", false, "Validate the OpenAPI specification")
+	mcpCompat := flag.String("mcp-compat", "", "MCP compatibility check mode: 'strict' (error on incompatible operations) or 'warn' (skip with warnings)")
 	templateFile := flag.String("template", "", "Path to a template file to patch the output")
 
 	// Parse command-line flags
@@ -40,6 +42,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Validate MCP compatibility mode flag
+	compatMode, valid := validator.ParseMCPCompatMode(*mcpCompat)
+	if !valid {
+		fmt.Printf("Error: invalid mcp-compat mode %q (must be 'strict' or 'warn')\n", *mcpCompat)
+		os.Exit(1)
+	}
+
 	// Create a new parser
 	p := parser.NewParser()
 
@@ -53,12 +62,40 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Run MCP compatibility validation if enabled
+	var compatResult *validator.MCPCompatResult
+	if compatMode != validator.MCPCompatOff {
+		compatResult = validator.ValidateDocument(p.GetDocument())
+
+		if len(compatResult.Issues) > 0 {
+			if compatMode == validator.MCPCompatStrict {
+				fmt.Println("Error: OpenAPI specification contains MCP-incompatible operations:")
+				for _, issue := range compatResult.Issues {
+					fmt.Printf("  %s\n", issue.String())
+				}
+				os.Exit(1)
+			}
+			// Warn mode: print warnings, will skip these operations during conversion
+			for _, issue := range compatResult.Issues {
+				fmt.Printf("Warning: %s\n", issue.String())
+			}
+			fmt.Println()
+		}
+	}
+
 	// Create a new converter
 	c := converter.NewConverter(p, models.ConvertOptions{
 		ServerName:     *serverName,
 		ToolNamePrefix: *toolNamePrefix,
 		TemplatePath:   *templateFile,
 	})
+
+	// Set skip filter if in warn mode with incompatible operations
+	if compatResult != nil && compatMode == validator.MCPCompatWarn {
+		c.SkipFilter = func(path, method string) bool {
+			return !compatResult.IsCompatible(path, method)
+		}
+	}
 
 	// Convert the OpenAPI specification to an MCP configuration
 	config, err := c.Convert()
