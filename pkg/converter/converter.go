@@ -337,6 +337,11 @@ func (c *Converter) convertParameters(parameters openapi3.Parameters) ([]models.
 			// Set the type based on the schema type
 			arg.Type = schema.Type
 
+			// Handle default value
+			if schema.Default != nil {
+				arg.Default = schema.Default
+			}
+
 			// Handle enum values
 			if len(schema.Enum) > 0 {
 				arg.Enum = schema.Enum
@@ -410,6 +415,11 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 					Position:    "body",
 				}
 
+				// Handle default value
+				if schema.Default != nil {
+					arg.Default = schema.Default
+				}
+
 				// Set items schema
 				arg.Items = map[string]any{
 					"type": schema.Items.Value.Type,
@@ -443,6 +453,11 @@ func (c *Converter) convertRequestBody(requestBodyRef *openapi3.RequestBodyRef) 
 						Type:        propRef.Value.Type,
 						Required:    contains(schema.Required, propName),
 						Position:    "body", // Set position to "body" for request body parameters
+					}
+
+					// Handle default value
+					if propRef.Value.Default != nil {
+						arg.Default = propRef.Value.Default
 					}
 
 					// Handle enum values
@@ -875,6 +890,11 @@ func (c *Converter) convertPropertiesWithVisited(properties map[string]*openapi3
 			propSchema["description"] = propRef.Value.Description
 		}
 
+		// Handle nullable - use JSON Schema type array format ["type", "null"]
+		if propRef.Value.Nullable {
+			propSchema["type"] = []any{propRef.Value.Type, "null"}
+		}
+
 		// Handle nested object properties recursively
 		if propRef.Value.Type == "object" && len(propRef.Value.Properties) > 0 {
 			// Mark this schema as visited
@@ -959,7 +979,7 @@ func (c *Converter) convertNestedPropertiesWithVisited(schema *openapi3.Schema, 
 
 			propSchema := make(map[string]any)
 
-			// Add fields in alphabetical order for deterministic output: default, description, enum, type
+			// Add fields in alphabetical order for deterministic output: default, description, enum, nullable, type
 			if propRef.Value.Default != nil {
 				propSchema["default"] = propRef.Value.Default
 			}
