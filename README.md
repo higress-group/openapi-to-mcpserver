@@ -295,7 +295,7 @@ For more information about using this configuration with Higress REST-to-MCP, pl
 - Converts OpenAPI paths to MCP tools
 - Supports both JSON and YAML OpenAPI specifications
 - Generates MCP configuration with server and tool definitions
-- Preserves parameter descriptions and types
+- Preserves parameter descriptions, types, and default values
 - Automatically sets parameter positions based on OpenAPI parameter locations
 - Handles path, query, header, cookie, and body parameters
 - Generates response templates with field descriptions and improved formatting for LLM understanding
