@@ -1,0 +1,36 @@
+server:
+  name: openapi-server
+  securitySchemes:
+    - id: ApiKeyHeaderAuth
+      type: apiKey
+      in: header
+      name: X-API-KEY
+    - id: BearerAuth
+      type: http
+      scheme: bearer
+tools:
+  - name: getGlobalAuthResource
+    description: Resource using global security
+    args: []
+    requestTemplate:
+      url: http://localhost:8080/v1/global_auth_resource
+      method: GET
+      security:
+        id: BearerAuth
+    responseTemplate: {}
+  - name: getNoAuthResource
+    description: Resource explicitly disabling auth
+    args: []
+    requestTemplate:
+      url: http://localhost:8080/v1/no_auth_resource
+      method: GET
+    responseTemplate: {}
+  - name: getOverrideAuthResource
+    description: Resource overriding global security with ApiKey
+    args: []
+    requestTemplate:
+      url: http://localhost:8080/v1/override_auth_resource
+      method: GET
+      security:
+        id: ApiKeyHeaderAuth
+    responseTemplate: {}

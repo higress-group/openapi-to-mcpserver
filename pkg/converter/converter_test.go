@@ -91,6 +91,12 @@ func TestEndToEndConversion(t *testing.T) {
 			serverName:     "openapi-server",
 		},
 		{
+			name:           "Global Security Schemes API",
+			inputFile:      "../../test/global-security-test.json",
+			expectedOutput: "../../test/expected-global-security-test-mcp.yaml",
+			serverName:     "openapi-server",
+		},
+		{
 			name:           "Handle AllOf Parameters",
 			inputFile:      "../../test/allof-params.json",
 			expectedOutput: "../../test/expected-allof-params-mcp.yaml",

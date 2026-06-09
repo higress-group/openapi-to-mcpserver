@@ -535,9 +535,16 @@ func (c *Converter) createRequestTemplate(path, method string, operation *openap
 	}
 
 	// Process operation-level security requirements
+	// If operation-level security is not set, fall back to global security
 	securitySchemeFound := false
-	if operation.Security != nil {
-		for _, securityRequirement := range *operation.Security {
+	securityRequirements := operation.Security
+	if securityRequirements == nil {
+		if doc := c.parser.GetDocument(); doc != nil && len(doc.Security) > 0 {
+			securityRequirements = &doc.Security
+		}
+	}
+	if securityRequirements != nil {
+		for _, securityRequirement := range *securityRequirements {
 			if securitySchemeFound {
 				break
 			}
