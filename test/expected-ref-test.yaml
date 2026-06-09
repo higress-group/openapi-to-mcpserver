@@ -34,6 +34,8 @@ tools:
       headers:
         - key: Content-Type
           value: application/json
+      security:
+        id: ApiKeyAuth
     responseTemplate:
       prependBody: |+
         # API Response Information

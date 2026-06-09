@@ -1,0 +1,75 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "version": "1.0.0",
+    "title": "Global Security Test API",
+    "description": "API for testing global security scheme conversion"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/v1"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "HTTP Bearer Authentication"
+      },
+      "ApiKeyHeaderAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-KEY",
+        "description": "API Key in Header"
+      }
+    }
+  },
+  "paths": {
+    "/global_auth_resource": {
+      "get": {
+        "summary": "Resource using global security",
+        "operationId": "getGlobalAuthResource",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/override_auth_resource": {
+      "get": {
+        "summary": "Resource overriding global security with ApiKey",
+        "operationId": "getOverrideAuthResource",
+        "security": [
+          {
+            "ApiKeyHeaderAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/no_auth_resource": {
+      "get": {
+        "summary": "Resource explicitly disabling auth",
+        "operationId": "getNoAuthResource",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    }
+  }
+}
