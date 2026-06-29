@@ -1,0 +1,89 @@
+server:
+  name: xquik
+  securitySchemes:
+    - id: apiKey
+      type: apiKey
+      in: header
+      name: x-api-key
+    - id: oauthBearer
+      type: http
+      scheme: bearer
+tools:
+  - name: searchTweets
+    description: Search tweets by query
+    args:
+      - name: limit
+        description: Maximum tweets to return.
+        type: integer
+        position: query
+      - name: q
+        description: Search query.
+        type: string
+        required: true
+        position: query
+      - name: queryType
+        description: Sort order.
+        type: string
+        enum:
+          - Latest
+          - Top
+        position: query
+    requestTemplate:
+      url: https://xquik.com/api/v1/x/tweets/search
+      method: GET
+      security:
+        id: apiKey
+    responseTemplate:
+      prependBody: |+
+        # API Response Information
+
+        Below is the response from an API call. To help you understand the data, I've provided:
+
+        1. A detailed description of all fields in the response structure
+        2. The complete API response
+
+        ## Response Structure
+
+        > Content-Type: application/json
+
+        - **has_next_page**: Whether another page is available. (Type: boolean)
+        - **next_cursor**: Cursor for the next page. (Type: string)
+        - **tweets**: Tweet results. (Type: array)
+          - **tweets[].author**: Tweet author. (Type: object)
+            - **tweets[].author.username**: Author username. (Type: string)
+          - **tweets[].id**: Tweet ID. (Type: string)
+          - **tweets[].text**: Tweet text. (Type: string)
+
+        ## Original Response
+
+    outputSchema:
+      description: Search results
+      properties:
+        has_next_page:
+          description: Whether another page is available.
+          type: boolean
+        next_cursor:
+          description: Cursor for the next page.
+          type: string
+        tweets:
+          description: Tweet results.
+          items:
+            properties:
+              author:
+                description: Tweet author.
+                properties:
+                  username:
+                    description: Author username.
+                    type: string
+                type: object
+              id:
+                description: Tweet ID.
+                type: string
+              text:
+                description: Tweet text.
+                type: string
+            type: object
+          type: array
+      required:
+        - tweets
+      type: object
