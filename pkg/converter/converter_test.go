@@ -120,6 +120,12 @@ func TestEndToEndConversion(t *testing.T) {
 			expectedOutput: "../../test/expected-array-request-body-mcp.yaml",
 			serverName:     "array-body-api",
 		},
+		{
+			name:           "Xquik Read API",
+			inputFile:      "../../test/xquik-read-api.json",
+			expectedOutput: "../../test/expected-xquik-read-api-mcp.yaml",
+			serverName:     "xquik",
+		},
 	}
 
 	for _, tc := range testCases {
